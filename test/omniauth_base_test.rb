@@ -16,8 +16,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer"
-    login(name: "Janko", email: "janko@hey.com")
+    omniauth_login "/auth/developer", name: "Janko", email: "janko@hey.com"
     assert_equal "/auth/developer/callback", page.current_path
 
     auth = JSON.parse(page.html)
@@ -43,9 +42,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer"
-    login(name: "Janko")
-
+    omniauth_login "/auth/developer", name: "Janko"
     assert_equal "Janko", page.html
   end
 
@@ -154,8 +151,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer"
-    login(name: "Janko", email: "janko@hey.com")
+    omniauth_login "/auth/developer", name: "Janko", email: "janko@hey.com"
   end
 
   it "defines helper methods for params, strategy, and origin" do
@@ -179,8 +175,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer?foo=bar&origin=/foo"
-    login
+    omniauth_login "/auth/developer?foo=bar&origin=/foo"
   end
 
   it "allows handling failure" do
@@ -211,9 +206,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer"
-    login
-
+    omniauth_login "/auth/developer"
     assert_equal "custom failure response", page.html
   end
 
@@ -348,8 +341,7 @@ describe "Rodauth omniauth_base feature" do
 
     visit "/"
 
-    visit "/auth/developer/request"
-    login
+    omniauth_login "/auth/developer/request"
     assert_equal "/auth/developer/back", page.current_path
   end
 
@@ -371,9 +363,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/developer"
-    login(name: "Janko")
-
+    omniauth_login "/auth/developer", name: "Janko"
     assert_equal "Janko", page.html
   end
 
@@ -396,12 +386,10 @@ describe "Rodauth omniauth_base feature" do
       end
     end
 
-    visit "/auth/one"
-    login
+    omniauth_login "/auth/one"
     assert_equal "one,one", page.html
 
-    visit "/auth/two"
-    login
+    omniauth_login "/auth/two"
     assert_equal "two,two", page.html
   end
 

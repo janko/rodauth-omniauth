@@ -1,0 +1,15 @@
+#{"<h2>Connect External Providers</h2>" if rodauth.omniauth_add_links.any?}
+
+<ul class="rodauth-links rodauth-omniauth-add-links">
+#{rodauth.omniauth_add_links.map do |link, text|
+  "<li><a href=\"#{h link}\">#{h text}</a></li>"
+end.join("\n")}
+</ul>
+
+#{"<h2>Disconnect External Providers</h2>" if rodauth.omniauth_remove_links.any?}
+
+<ul class="rodauth-links rodauth-omniauth-remove-links">
+#{rodauth.omniauth_remove_links.map do |link, text|
+  "<li><a href=\"#{h link}\">#{h text}</a></li>"
+end.join("\n")}
+</ul>
