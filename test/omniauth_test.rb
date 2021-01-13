@@ -21,7 +21,7 @@ describe "Rodauth omniauth feature" do
 
     login
     omniauth_login "/auth/developer", name: "Janko", email: "janko@other.com"
-    assert_equal "The external identity has been connected to your account", page.find("#notice_flash").text
+    assert_equal "The external identity has been connected", page.find("#notice_flash").text
     assert_match "password", page.html
 
     assert_equal [{
@@ -52,7 +52,7 @@ describe "Rodauth omniauth feature" do
 
     login
     omniauth_login "/auth/developer", email: "janko@other.com"
-    assert_equal "The external identity has been connected to your account", page.find("#notice_flash").text
+    assert_equal "The external identity has been connected", page.find("#notice_flash").text
     assert_match "password", page.html
   end
 
@@ -126,7 +126,7 @@ describe "Rodauth omniauth feature" do
     end
 
     omniauth_login "/auth/developer", email: "janko@hey.com"
-    assert_equal "You have been logged in", page.find("#notice_flash").text
+    assert_equal "Your account has been created", page.find("#notice_flash").text
     assert_match "omniauth", page.html
 
     assert_equal "janko@hey.com", DB[:accounts].first[:email]
@@ -155,7 +155,7 @@ describe "Rodauth omniauth feature" do
 
     login(email: "janko@hey.com")
     omniauth_login "/auth/developer", email: "janko@other.com"
-    assert_equal "The external identity has been connected to your account", page.find("#notice_flash").text
+    assert_equal "The external identity has been connected", page.find("#notice_flash").text
 
     assert_equal 1, DB[:account_identities].count
     assert_equal 1, DB[:account_identities].first[:account_id]

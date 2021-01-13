@@ -63,9 +63,14 @@ class Minitest::HooksSpec
     @rodauth_block = block
   end
 
-  def roda(&block)
+  def roda(session: :middleware, &block)
     app = Class.new(Roda)
-    app.use Rack::Session::Cookie, secret: "secret"
+    case session
+    when :middleware
+      app.use RodaSessionMiddleware, secret: SecureRandom.hex(32)
+    when :plugin
+      app.plugin :sessions, secret: SecureRandom.hex(32)
+    end
     app.plugin :render, layout_opts: { path: "test/views/layout.str" }
 
     rodauth_block = @rodauth_block

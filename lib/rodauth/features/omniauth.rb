@@ -6,11 +6,21 @@ module Rodauth
   Feature.define(:omniauth, :Omniauth) do
     depends :omniauth_base, :login
 
+    loaded_templates %w[omniauth-manage omniauth-remove]
+    view "omniauth-manage", "Manage External Identities", :omniauth_manage
+    view "omniauth-remove", "Disconnect External Identity", :omniauth_remove
+
+    additional_form_tags :omniauth_remove
+
+    before :omniauth_remove
+    after :omniauth_remove
+
     notice_flash "The external identity has been connected to your account", :omniauth_connected
-    error_flash "There was an error logging in with the external provider", :omniauth_failure
+    notice_flash "The external identity has been disconnected from your account", :omniauth_remove
+    error_flash "There was an error disconnecting the external identity", :omniauth_remove
 
     redirect(:omniauth_connected)
-    redirect(:omniauth_failure)
+    redirect(:omniauth_remove)
 
     auth_value_method :omniauth_identities_table, :account_identities
     auth_value_method :omniauth_identities_id_column, :id
@@ -21,7 +31,14 @@ module Rodauth
     auth_value_method :omniauth_identities_credentials_column, :credentials
     auth_value_method :omniauth_identities_extra_column, :extra
 
-    auth_value_method :omniauth_failure_error_status, 500
+    auth_value_method :omniauth_provider_param, "provider"
+
+    auth_vaue_method :omniauth_auto_add_identity?, true
+    auth_vaue_method :omniauth_auto_create_account?, true
+
+    auth_value_methods(
+      :omniauth_removal_requires_password?,
+    )
 
     auth_methods(
       :omniauth_create_account,
@@ -44,12 +61,47 @@ module Rodauth
       :account_from_omniauth_identity,
     )
 
-    route(:omniauth_manage) do
+    route(:omniauth_manage) do |r|
       require_account
       before_omniauth_manage_route
 
       r.get do
         omniauth_manage_view
+      end
+    end
+
+    route(:omniauth_add) do |r|
+      require_account
+    end
+
+    route(:omniauth_remove) do |r|
+      require_account
+      before_omniauth_remove_route
+
+      r.get do
+        omniauth_remove_view
+      end
+
+      r.post do
+        provider = param(omniauth_provider_param)
+
+        catch_error do
+          if omniauth_removal_requires_password? && !password_match?(param(password_param))
+            throw_error_status(invalid_password_error_status, password_param, invalid_password_message)
+          end
+
+          transaction do
+            before_omniauth_remove
+            omniauth_remove(provider)
+            after_omniauth_remove
+          end
+
+          set_notice_flash omniauth_remove_notice_flash
+          redirect omniauth_remove_redirect
+        end
+
+        set_error_flash omniauth_remove_error_flash
+        omniauth_remove_view
       end
     end
 
@@ -73,24 +125,29 @@ module Rodauth
         end
 
         unless account
-          account_from_login(omniauth_info.fetch("email"))
+          account_from_login(omniauth_email)
         end
 
         if account && !open_account?
-          set_redirect_error_status(unopen_account_error_status)
+          set_redirect_error_status unopen_account_error_status
           set_redirect_error_flash "#{login_error_flash} (#{unverified_account_message})"
           redirect omniauth_failure_redirect
         end
 
         transaction do
-          unless account
-            omniauth_create_account
-          end
-
           if omniauth_identity
             update_omniauth_identity
           else
             create_omniauth_identity
+          end
+
+          unless account
+            omniauth_create_account
+            @omniauth_account_created = true
+          end
+
+          if omniauth_auto_add_identity?
+            add_omniauth_identity
           end
         end
 
@@ -125,10 +182,28 @@ module Rodauth
       omniauth_account_identities_ds.delete
     end
 
+    def omniauth_remove(provider)
+      omniauth_account_identities_ds
+        .where(omniauth_identities_provider_column => provider.to_s)
+        .delete
+    end
+
     def possible_authentication_methods
       methods = super
       methods << "omniauth" if !methods.include?("password") && omniauth_connected_providers.any?
       methods
+    end
+
+    def omniauth_removal_requires_password?
+      modifications_require_password?
+    end
+
+    def login_notice_flash
+      if @omniauth_account_created
+        create_account_notice_flash
+      else
+        super
+      end
     end
 
     private
@@ -158,38 +233,26 @@ module Rodauth
     end
 
     def omniauth_create_account
-      @account = { login_column => omniauth_info.fetch("email") }
+      @account = { login_column => omniauth_email }
       @account[account_id_column] = db[accounts_table].insert(@account)
     end
 
     def create_omniauth_identity
-      omniauth_account_identities_ds.insert(omniauth_identity_insert_hash)
+      identity_id = omniauth_identities_ds.insert(omniauth_identity_insert_hash)
+      @omniauth_identity = { omniauth_identities_id_column => identity_id }
     end
 
     def update_omniauth_identity(identity_id = omniauth_identity_id)
       omniauth_identities_ds
         .where(omniauth_identities_id_column => identity_id)
-        .update(
-          omniauth_identities_account_id_column => account_id,
-          **omniauth_identity_update_hash
-        )
-    end
-
-    def handle_omniauth_failure(provider)
-      set_redirect_error_status omniauth_failure_error_status
-      set_redirect_error_flash omniauth_failure_error_flash
-      redirect omniauth_failure_redirect
+        .update(omniauth_identity_update_hash)
     end
 
     def omniauth_identity_insert_hash
       {
-        omniauth_identities_account_id_column => account_id,
         omniauth_identities_provider_column => omniauth_provider.to_s,
         omniauth_identities_uid_column => omniauth_uid,
-        omniauth_identities_info_column => serialize_omniauth_data(omniauth_info),
-        omniauth_identities_credentials_column => serialize_omniauth_data(omniauth_credentials),
-        omniauth_identities_extra_column => serialize_omniauth_data(omniauth_extra),
-      }
+      }.merge(omniauth_identity_update_hash)
     end
 
     def omniauth_identity_update_hash
@@ -234,6 +297,10 @@ module Rodauth
 
     def omniauth_identities_ds
       db[omniauth_identities_table]
+    end
+
+    def omniauth_email
+      omniauth_info.fetch("email")
     end
 
     def before_omniauth_callback_route(provider)

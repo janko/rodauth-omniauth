@@ -4,8 +4,13 @@ require "omniauth"
 
 module Rodauth
   Feature.define(:omniauth_base, :OmniauthBase) do
+    error_flash "There was an error logging in with the external provider", :omniauth_failure
+
+    redirect(:omniauth_failure)
+
     auth_value_method :omniauth_strategies, {}
     auth_value_method :omniauth_request_phase_only_post?, false
+    auth_value_method :omniauth_failure_error_status, 500
 
     auth_value_methods(
       :omniauth_prefix,
@@ -100,12 +105,16 @@ module Rodauth
     private
 
     def omniauth_run(app)
+      session # set "rack.session" when roda sessions plugin is used
       request.env["omniauth.rodauth"] = self
-      request.run app, not_found: :pass
+      request.run app, not_found: :pass do |res|
+        handle_omniauth_response(res)
+      end
     ensure
       request.env.delete("omniauth.rodauth")
     end
 
+    # returns rack app with all registered strategies added to the middleware stack
     def omniauth_app
       app = Rack::Builder.new
       omniauth_providers.each do |provider|
@@ -151,8 +160,14 @@ module Rodauth
       # can be overridden to setup the strategy
     end
 
+    def handle_omniauth_response(res)
+      # overridden in omniauth_jwt feature
+    end
+
     def handle_omniauth_failure(provider)
-      OmniAuth::FailureEndpoint.call(request.env)
+      set_redirect_error_status omniauth_failure_error_status
+      set_redirect_error_flash omniauth_failure_error_flash
+      redirect omniauth_failure_redirect
     end
 
     def omniauth_provider_args(provider)

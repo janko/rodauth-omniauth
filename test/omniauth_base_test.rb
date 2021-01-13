@@ -427,4 +427,22 @@ describe "Rodauth omniauth_base feature" do
       page.driver.post "/auth/developer"
     end
   end
+
+  it "works with sessions roda plugin" do
+    rodauth do
+      enable :omniauth_base
+      omniauth_provider :developer
+    end
+    roda(session: :plugin) do |r|
+      r.on("auth") do
+        r.omniauth
+        r.is "developer/callback" do
+          request.env["omniauth.params"].to_json
+        end
+      end
+    end
+
+    omniauth_login "/auth/developer?foo=bar"
+    assert_equal '{"foo":"bar"}', page.html
+  end
 end
