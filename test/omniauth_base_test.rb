@@ -114,20 +114,6 @@ describe "Rodauth omniauth_base feature" do
     assert_match "/other/developer/callback", page.html
   end
 
-  it "defaults omniauth prefix to prefix if set" do
-    rodauth do
-      enable :omniauth_base
-      prefix "/other"
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.on("other") { r.omniauth }
-    end
-
-    visit "/other/developer"
-    assert_match "/other/developer/callback", page.html
-  end
-
   it "defines helper methods for omniauth auth data" do
     m = self
 
@@ -184,10 +170,10 @@ describe "Rodauth omniauth_base feature" do
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
-      before_omniauth_callback_phase do |provider|
+      omniauth_before_callback_phase do |provider|
         omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
       end
-      handle_omniauth_failure do |provider|
+      omniauth_on_failure do |provider|
         m.assert_equal :some_error, omniauth_error_type
         m.assert_instance_of KeyError, omniauth_error
         m.assert_equal "foo", omniauth_error.message
@@ -323,7 +309,7 @@ describe "Rodauth omniauth_base feature" do
       omniauth_callback_route { |provider| "#{provider}/back" }
     end
     roda do |r|
-      r.on "auth" do
+      r.on "other" do
         r.omniauth
         r.is("developer/back") { "" }
       end
@@ -341,8 +327,8 @@ describe "Rodauth omniauth_base feature" do
 
     visit "/"
 
-    omniauth_login "/auth/developer/request"
-    assert_equal "/auth/developer/back", page.current_path
+    omniauth_login "/other/developer/request"
+    assert_equal "/other/developer/back", page.current_path
   end
 
   it "supports strategy setup" do
@@ -373,15 +359,15 @@ describe "Rodauth omniauth_base feature" do
       omniauth_strategies :one => :developer, :two => :developer
       omniauth_provider :one
       omniauth_provider :two
-      before_omniauth_request_phase { |provider| session[:request_hook] = provider }
-      before_omniauth_callback_phase { |provider| session[:callback_hook] = provider }
+      omniauth_before_request_phase { |provider| session["request_hook"] = provider }
+      omniauth_before_callback_phase { |provider| session["callback_hook"] = provider }
     end
     roda do |r|
       r.on "auth" do
         r.omniauth
 
-        r.is String, "callback" do
-          [session[:request_hook], session[:callback_hook]].join(",")
+        r.is ["one", "two"], "callback" do
+          [session["request_hook"], session["callback_hook"]].join(",")
         end
       end
     end
@@ -394,10 +380,15 @@ describe "Rodauth omniauth_base feature" do
   end
 
   it "supports requiring request phase to be POST" do
+    OmniAuth.config.allowed_request_methods = %i[post]
+
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
-      omniauth_request_phase_only_post? true
+      omniauth_on_failure do |provider|
+        response.write "#{omniauth_error.class}: #{omniauth_error.message}"
+        request.halt
+      end
     end
     roda do |r|
       r.on "auth" do
@@ -415,17 +406,17 @@ describe "Rodauth omniauth_base feature" do
     end
 
     visit "/auth/developer"
-    assert_equal 405, page.status_code
-    assert_equal "POST", page.response_headers["Allow"]
+    assert_equal 404, page.status_code
 
     visit "/"
     click_on "Request"
     assert_equal "/auth/developer", page.current_path
     assert_match "User Info", page.html
 
-    assert_raises Roda::RodaPlugins::RouteCsrf::InvalidToken do
-      page.driver.post "/auth/developer"
-    end
+    page.driver.post "/auth/developer"
+    assert_equal "Roda::RodaPlugins::RouteCsrf::InvalidToken: encoded token is not a string", page.html
+
+    OmniAuth.config.allowed_request_methods = %i[get post]
   end
 
   it "works with sessions roda plugin" do
@@ -433,7 +424,7 @@ describe "Rodauth omniauth_base feature" do
       enable :omniauth_base
       omniauth_provider :developer
     end
-    roda(session: :plugin) do |r|
+    roda do |r|
       r.on("auth") do
         r.omniauth
         r.is "developer/callback" do

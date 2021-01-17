@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "omniauth"
+require "omniauth/version"
 
 module Rodauth
   Feature.define(:omniauth_base, :OmniauthBase) do
@@ -8,21 +9,18 @@ module Rodauth
 
     redirect(:omniauth_failure)
 
+    auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
     auth_value_method :omniauth_strategies, {}
-    auth_value_method :omniauth_request_phase_only_post?, false
     auth_value_method :omniauth_failure_error_status, 500
 
-    auth_value_methods(
-      :omniauth_prefix,
-    )
-
     auth_methods(
-      :omniauth_setup,
-      :handle_omniauth_failure,
-      :omniauth_request_route,
+      :omniauth_before_request_phase,
+      :omniauth_before_callback_phase,
       :omniauth_callback_route,
-      :before_omniauth_request_phase,
-      :before_omniauth_callback_phase,
+      :omniauth_on_failure,
+      :omniauth_request_route,
+      :omniauth_request_validation_phase,
+      :omniauth_setup,
     )
 
     configuration_module_eval do
@@ -45,20 +43,21 @@ module Rodauth
       self.class.roda_class.plugin :run_handler
       self.class.roda_class.plugin :rodauth_omniauth
 
+      OmniAuth.config.request_validation_phase = -> (env) do
+        env["omniauth.rodauth"].send(:omniauth_request_validation_phase, env["omniauth.strategy"].name)
+      end if omniauth_2?
       OmniAuth.config.before_request_phase = -> (env) do
-        env["omniauth.rodauth"].send(:before_omniauth_request_phase, env["omniauth.strategy"].name)
+        env["omniauth.rodauth"].send(:omniauth_before_request_phase, env["omniauth.strategy"].name)
       end
       OmniAuth.config.before_callback_phase = -> (env) do
-        env["omniauth.rodauth"].send(:before_omniauth_callback_phase, env["omniauth.strategy"].name)
+        env["omniauth.rodauth"].send(:omniauth_before_callback_phase, env["omniauth.strategy"].name)
       end
       OmniAuth.config.on_failure = -> (env) do
-        env["omniauth.rodauth"].send(:handle_omniauth_failure, env["omniauth.error.strategy"].name)
+        env["omniauth.rodauth"].send(:omniauth_on_failure, env["omniauth.error.strategy"].name)
       end
     end
 
     def route_omniauth!
-      omniauth_request_phase_protection if omniauth_request_phase_only_post?
-
       omniauth_run omniauth_app
     end
 
@@ -72,6 +71,10 @@ module Rodauth
       define_method(:"omniauth_#{data}") do
         request.env.fetch("omniauth.#{data.tr("_", ".")}")
       end
+    end
+
+    def omniauth_email
+      omniauth_info.fetch("email")
     end
 
     [:request, :callback].each do |phase|
@@ -124,50 +127,43 @@ module Rodauth
       app
     end
 
-    def omniauth_strategy_args(provider)
-      *args, options = omniauth_provider_args(provider)
-
-      our_options = {
-        name:          provider,
-        request_path:  "/" + omniauth_request_route(provider),
-        callback_path: "/" + omniauth_callback_route(provider),
-        setup:         -> (env) { omniauth_setup(provider) },
-      }
-
-      [*args, options.merge(our_options)]
+    def omniauth_request_validation_phase(provider)
+      check_csrf if check_csrf?
     end
 
-    def omniauth_request_phase_protection
-      if omniauth_request_phase?
-        request.halt [405, { "Allow" => "POST" }, [""]] unless request.post?
-        check_csrf if check_csrf?
-      end
+    def omniauth_before_request_phase(provider)
+      # can be overrridden to perform code before request phase
     end
 
-    [:request, :callback].each do |phase|
-      define_method(:"omniauth_#{phase}_phase?") do
-        omniauth_providers.any? do |provider|
-          request.path == send(:"omniauth_#{phase}_path", provider)
-        end
-      end
-
-      define_method(:"before_omniauth_#{phase}_phase") do |provider|
-        # can be overrridden to perform code before request/callback phase
-      end
+    def omniauth_before_callback_phase(provider)
+      # can be overrridden to perform code before callback phase
     end
 
     def omniauth_setup(provider)
       # can be overridden to setup the strategy
     end
 
+    def omniauth_on_failure(provider)
+      set_redirect_error_status omniauth_failure_error_status
+      set_redirect_error_flash omniauth_failure_error_flash
+      redirect omniauth_failure_redirect
+    end
+
     def handle_omniauth_response(res)
       # overridden in omniauth_jwt feature
     end
 
-    def handle_omniauth_failure(provider)
-      set_redirect_error_status omniauth_failure_error_status
-      set_redirect_error_flash omniauth_failure_error_flash
-      redirect omniauth_failure_redirect
+    def omniauth_strategy_args(provider)
+      *args, options = omniauth_provider_args(provider)
+
+      our_options = {
+        name:          provider,
+        request_path:  "#{omniauth_prefix if omniauth_2?}/#{omniauth_request_route(provider)}",
+        callback_path: "#{omniauth_prefix if omniauth_2?}/#{omniauth_callback_route(provider)}",
+        setup:         -> (env) { omniauth_setup(provider) },
+      }
+
+      [*args, options.merge(our_options)]
     end
 
     def omniauth_provider_args(provider)
@@ -193,8 +189,8 @@ module Rodauth
       fail LoadError, "Could not find matching strategy for #{provider.inspect}. You may need to install an additional gem (such as omniauth-#{provider})."
     end
 
-    def omniauth_prefix
-      !prefix.empty? ? prefix : OmniAuth.config.path_prefix
+    def omniauth_2?
+      Gem::Version.new(OmniAuth::VERSION) >= Gem::Version.new("2.0")
     end
   end
 end

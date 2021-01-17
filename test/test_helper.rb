@@ -11,7 +11,9 @@ require "securerandom"
 
 require "sequel/core"
 require "roda"
+require "roda"
 require "omniauth"
+require "omniauth/version"
 require "bcrypt"
 
 DB = Sequel.sqlite
@@ -34,17 +36,20 @@ DB.create_table :account_identities do
   unique [:provider, :uid]
 end
 
+OmniAuth.config.allowed_request_methods = %i[get post]
 OmniAuth.config.logger = Logger.new(nil)
 
-class OmniAuth::Strategies::Developer
-  # monkey patch to include script name in form action path
-  def request_phase
-    form = OmniAuth::Form.new(:title => 'User Info', :url => script_name + callback_path)
-    options.fields.each do |field|
-      form.text_field field.to_s.capitalize.tr('_', ' '), field.to_s
+if Gem::Version.new(OmniAuth::VERSION) < Gem::Version.new("2.0")
+  class OmniAuth::Strategies::Developer
+    # monkey patch to include script name in form action path
+    def request_phase
+      form = OmniAuth::Form.new(:title => 'User Info', :url => script_name + callback_path)
+      options.fields.each do |field|
+        form.text_field field.to_s.capitalize.tr('_', ' '), field.to_s
+      end
+      form.button 'Sign In'
+      form.to_response
     end
-    form.button 'Sign In'
-    form.to_response
   end
 end
 
@@ -63,14 +68,9 @@ class Minitest::HooksSpec
     @rodauth_block = block
   end
 
-  def roda(session: :middleware, &block)
+  def roda(&block)
     app = Class.new(Roda)
-    case session
-    when :middleware
-      app.use RodaSessionMiddleware, secret: SecureRandom.hex(32)
-    when :plugin
-      app.plugin :sessions, secret: SecureRandom.hex(32)
-    end
+    app.plugin :sessions, secret: SecureRandom.hex(32)
     app.plugin :render, layout_opts: { path: "test/views/layout.str" }
 
     rodauth_block = @rodauth_block

@@ -299,10 +299,6 @@ module Rodauth
       db[omniauth_identities_table]
     end
 
-    def omniauth_email
-      omniauth_info.fetch("email")
-    end
-
     def before_omniauth_callback_route(provider)
       # can be overridden to perform code before the callback handler
     end
