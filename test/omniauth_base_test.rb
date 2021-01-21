@@ -65,11 +65,9 @@ describe "Rodauth omniauth_base feature" do
       omniauth_strategies(
         :foo => :developer,
         :bar => OmniAuth::Strategies::Developer,
-        :baz => "OmniAuth::Strategies::Developer",
       )
       omniauth_provider :foo
       omniauth_provider :bar
-      omniauth_provider :baz
     end
     roda do |r|
       r.on("auth") { r.omniauth }
@@ -77,15 +75,12 @@ describe "Rodauth omniauth_base feature" do
     end
 
     visit "/"
-    assert_equal "[:foo, :bar, :baz]", page.text
+    assert_equal "[:foo, :bar]", page.text
 
     visit "/auth/foo"
     assert_match "User Info", page.html
 
     visit "/auth/bar"
-    assert_match "User Info", page.html
-
-    visit "/auth/baz"
     assert_match "User Info", page.html
   end
 

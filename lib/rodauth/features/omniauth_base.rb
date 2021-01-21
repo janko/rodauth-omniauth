@@ -14,8 +14,8 @@ module Rodauth
     auth_value_method :omniauth_failure_error_status, 500
 
     auth_methods(
-      :omniauth_before_request_phase,
       :omniauth_before_callback_phase,
+      :omniauth_before_request_phase,
       :omniauth_callback_route,
       :omniauth_on_failure,
       :omniauth_request_route,
@@ -38,7 +38,7 @@ module Rodauth
       super
 
       # ensure upfront that all registered providers can be resolved
-      omniauth_providers.each { |provider| omniauth_strategy_class(provider) }
+      omniauth_app
 
       self.class.roda_class.plugin :run_handler
       self.class.roda_class.plugin :rodauth_omniauth
@@ -77,7 +77,11 @@ module Rodauth
       omniauth_info.fetch("email")
     end
 
-    [:request, :callback].each do |phase|
+    { request: "", callback: "/callback" }.each do |phase, suffix|
+      define_method(:"omniauth_#{phase}_url") do |provider, params = {}|
+        "#{base_url}#{send(:"omniauth_#{phase}_path", provider, params)}"
+      end
+
       define_method(:"omniauth_#{phase}_path") do |provider, params = {}|
         unless omniauth_providers.include?(provider.to_sym)
           fail ArgumentError, "unregistered omniauth provider: #{provider}"
@@ -88,17 +92,9 @@ module Rodauth
         path
       end
 
-      define_method(:"omniauth_#{phase}_url") do |provider, params = {}|
-        "#{base_url}#{send(:"omniauth_#{phase}_path", provider, params)}"
+      define_method(:"omniauth_#{phase}_route") do |provider|
+        "#{provider}#{suffix}"
       end
-    end
-
-    def omniauth_request_route(provider)
-      "#{provider}"
-    end
-
-    def omniauth_callback_route(provider)
-      "#{provider}/callback"
     end
 
     def omniauth_providers
@@ -119,9 +115,10 @@ module Rodauth
 
     # returns rack app with all registered strategies added to the middleware stack
     def omniauth_app
-      app = Rack::Builder.new
+      app = OmniAuth::Builder.new
       omniauth_providers.each do |provider|
-        app.use omniauth_strategy_class(provider), *omniauth_strategy_args(provider)
+        strategy = omniauth_strategies[provider] || provider
+        app.provider strategy, *omniauth_strategy_args(provider)
       end
       app.run -> (env) { [404, {}, []] } # pass through
       app
@@ -168,25 +165,6 @@ module Rodauth
 
     def omniauth_provider_args(provider)
       self.class.omniauth_providers.fetch(provider)
-    end
-
-    def omniauth_strategy_class(provider)
-      strategy = omniauth_strategies[provider] || provider
-
-      case strategy
-      when Symbol then omniauth_resolve_strategy(strategy)
-      when String then Object.const_get(strategy)
-      when Class  then strategy
-      else
-        fail ArgumentError, "provider must be a Symbol, String or a Class, got #{provider.inspect}"
-      end
-    end
-
-    # Uses the logic OmniAuth uses to resolve strategies from symbols.
-    def omniauth_resolve_strategy(provider)
-      OmniAuth::Strategies.const_get(OmniAuth::Utils.camelize(provider.to_s).to_s)
-    rescue NameError
-      fail LoadError, "Could not find matching strategy for #{provider.inspect}. You may need to install an additional gem (such as omniauth-#{provider})."
     end
 
     def omniauth_2?
