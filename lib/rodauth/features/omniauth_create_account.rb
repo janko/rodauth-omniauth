@@ -13,7 +13,7 @@ module Rodauth
     end
 
     def create_account_set_password?
-      false
+      param(omniauth_identity_id_param)
     end
 
     def verify_account_set_password?

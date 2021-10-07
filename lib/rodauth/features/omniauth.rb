@@ -106,11 +106,15 @@ module Rodauth
     end
 
     def route_omniauth!
-      super
+      result = super
 
-      omniauth_providers.each do |provider|
-        handle_omniauth_callback(provider)
+      request.on omniauth_prefix do
+        omniauth_providers.each do |provider|
+          handle_omniauth_callback(provider)
+        end
       end
+
+      result
     end
 
     def handle_omniauth_callback(provider)
@@ -264,12 +268,10 @@ module Rodauth
     end
 
     def _retrieve_omniauth_identity(provider, uid)
-      omniauth_identities_ds
-        .where(
-          omniauth_identities_provider_column => provider.to_s,
-          omniauth_identities_uid_column => uid,
-        )
-        .first
+      omniauth_identities_ds.first(
+        omniauth_identities_provider_column => provider.to_s,
+        omniauth_identities_uid_column => uid,
+      )
     end
 
     def _account_from_omniauth_identity

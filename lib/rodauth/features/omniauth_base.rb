@@ -10,55 +10,51 @@ module Rodauth
     redirect(:omniauth_failure)
 
     auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
-    auth_value_method :omniauth_strategies, {}
     auth_value_method :omniauth_failure_error_status, 500
 
+    auth_value_method :omniauth_authorize_url_key, "authorize_url"
+    auth_value_method :omniauth_error_type_key, "error_type"
+
     auth_methods(
+      :build_omniauth_app,
       :omniauth_before_callback_phase,
       :omniauth_before_request_phase,
-      :omniauth_callback_route,
       :omniauth_on_failure,
-      :omniauth_request_route,
       :omniauth_request_validation_phase,
       :omniauth_setup,
     )
 
     configuration_module_eval do
-      def omniauth_provider(provider, *args, **options)
-        @auth.omniauth_providers[provider] = [*args, **options]
+      def omniauth_provider(provider, *args)
+        @auth.instance_exec { @omniauth_providers << [provider, *args] }
       end
-    end
-
-    def self.included(auth)
-      auth.singleton_class.send(:attr_accessor, :omniauth_providers)
-      auth.omniauth_providers = {}
     end
 
     def post_configure
       super
 
-      # ensure upfront that all registered providers can be resolved
-      omniauth_app
+      omniauth_app = build_omniauth_app.to_app
+      self.class.define_method(:omniauth_app) { omniauth_app }
 
       self.class.roda_class.plugin :run_handler
       self.class.roda_class.plugin :rodauth_omniauth
-
-      OmniAuth.config.request_validation_phase = -> (env) do
-        env["omniauth.rodauth"].send(:omniauth_request_validation_phase, env["omniauth.strategy"].name)
-      end if omniauth_2?
-      OmniAuth.config.before_request_phase = -> (env) do
-        env["omniauth.rodauth"].send(:omniauth_before_request_phase, env["omniauth.strategy"].name)
-      end
-      OmniAuth.config.before_callback_phase = -> (env) do
-        env["omniauth.rodauth"].send(:omniauth_before_callback_phase, env["omniauth.strategy"].name)
-      end
-      OmniAuth.config.on_failure = -> (env) do
-        env["omniauth.rodauth"].send(:omniauth_on_failure, env["omniauth.error.strategy"].name)
-      end
     end
 
     def route_omniauth!
       omniauth_run omniauth_app
+      nil
+    end
+
+    { request: "", callback: "/callback" }.each do |phase, suffix|
+      define_method(:"omniauth_#{phase}_url") do |provider, params = {}|
+        "#{base_url}#{send(:"omniauth_#{phase}_path", provider, params)}"
+      end
+
+      define_method(:"omniauth_#{phase}_path") do |provider, params = {}|
+        path  = "#{omniauth_prefix}/#{provider}#{suffix}"
+        path += "?#{Rack::Utils.build_nested_query(params)}" unless params.empty?
+        path
+      end
     end
 
     %w[provider uid info credentials extra].each do |auth_key|
@@ -77,51 +73,40 @@ module Rodauth
       omniauth_info.fetch("email")
     end
 
-    { request: "", callback: "/callback" }.each do |phase, suffix|
-      define_method(:"omniauth_#{phase}_url") do |provider, params = {}|
-        "#{base_url}#{send(:"omniauth_#{phase}_path", provider, params)}"
-      end
-
-      define_method(:"omniauth_#{phase}_path") do |provider, params = {}|
-        unless omniauth_providers.include?(provider.to_sym)
-          fail ArgumentError, "unregistered omniauth provider: #{provider}"
-        end
-
-        path  = "#{omniauth_prefix}/#{send(:"omniauth_#{phase}_route", provider)}"
-        path += "?#{Rack::Utils.build_nested_query(params)}" unless params.empty?
-        path
-      end
-
-      define_method(:"omniauth_#{phase}_route") do |provider|
-        "#{provider}#{suffix}"
-      end
-    end
-
     def omniauth_providers
-      self.class.omniauth_providers.keys
+      self.class.instance_variable_get(:@omniauth_providers).map do |(provider, *args)|
+        options = args.last.is_a?(Hash) ? args.last : {}
+        options[:name] || provider
+      end
     end
 
     private
 
     def omniauth_run(app)
-      session # set "rack.session" when roda sessions plugin is used
-      request.env["omniauth.rodauth"] = self
-      request.run app, not_found: :pass do |res|
-        handle_omniauth_response(res)
+      omniauth_around_run do
+        request.run app, not_found: :pass do |res|
+          handle_omniauth_response(res)
+        end
       end
-    ensure
-      request.env.delete("omniauth.rodauth")
     end
 
     # returns rack app with all registered strategies added to the middleware stack
-    def omniauth_app
-      app = OmniAuth::Builder.new
-      omniauth_providers.each do |provider|
-        strategy = omniauth_strategies[provider] || provider
-        app.provider strategy, *omniauth_strategy_args(provider)
+    def build_omniauth_app
+      builder = OmniAuth::Builder.new
+      self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
+        builder.provider provider, *args
       end
-      app.run -> (env) { [404, {}, []] } # pass through
-      app
+      builder.configure do |config|
+        [:request_validation_phase, :before_request_phase, :before_callback_phase, :on_failure].each do |hook|
+          config.send(:"#{hook}=", -> (env) { env["omniauth.rodauth"].send(:"omniauth_#{hook}", env["omniauth.strategy"].name) })
+        end
+      end
+      builder.options(
+        path_prefix: omniauth_prefix,
+        setup: -> (env) { env["omniauth.rodauth"].send(:omniauth_setup, env["omniauth.strategy"].name) }
+      )
+      builder.run -> (env) { [404, {}, []] } # pass through
+      builder
     end
 
     def omniauth_request_validation_phase(provider)
@@ -146,29 +131,67 @@ module Rodauth
       redirect omniauth_failure_redirect
     end
 
+    def omniauth_around_run
+      set_omniauth_rodauth do
+        set_omniauth_session do
+          yield
+        end
+      end
+    end
+
+    # Ensures the OmniAuth app uses the same session as Rodauth.
+    def set_omniauth_session(&block)
+      if features.include?(:jwt) && use_jwt?
+        set_omniauth_jwt_session(&block)
+      else
+        session # ensure "rack.session" is set when roda sessions plugin is used
+        yield
+      end
+    end
+
+    # Makes OmniAuth strategies use the JWT session hash.
+    def set_omniauth_jwt_session
+      rack_session = request.env["rack.session"]
+      request.env["rack.session"] = session
+      yield
+    ensure
+      request.env["rack.session"] = rack_session
+    end
+
+    # Makes the Rodauth instance accessible inside OmniAuth strategies
+    # and callbacks.
+    def set_omniauth_rodauth
+      request.env["omniauth.rodauth"] = self
+      yield
+    ensure
+      request.env.delete("omniauth.rodauth")
+    end
+
+    # Returns authorization URL when using the JSON feature.
     def handle_omniauth_response(res)
-      # overridden in omniauth_jwt feature
+      return unless features.include?(:json) && use_json?
+
+      if status == 302
+        json_response[omniauth_authorize_url_key] = headers["Location"]
+        return_json_response
+      end
     end
 
-    def omniauth_strategy_args(provider)
-      *args, options = omniauth_provider_args(provider)
-
-      our_options = {
-        name:          provider,
-        request_path:  "#{omniauth_prefix if omniauth_2?}/#{omniauth_request_route(provider)}",
-        callback_path: "#{omniauth_prefix if omniauth_2?}/#{omniauth_callback_route(provider)}",
-        setup:         -> (env) { omniauth_setup(provider) },
-      }
-
-      [*args, options.merge(our_options)]
+    def self.included(auth)
+      auth.extend ClassMethods
+      auth.instance_variable_set(:@omniauth_providers, [])
     end
 
-    def omniauth_provider_args(provider)
-      self.class.omniauth_providers.fetch(provider)
-    end
+    module ClassMethods
+      def inherited(subclass)
+        super
+        subclass.instance_variable_set(:@omniauth_providers, @omniauth_providers.clone)
+      end
 
-    def omniauth_2?
-      Gem::Version.new(OmniAuth::VERSION) >= Gem::Version.new("2.0")
+      def freeze
+        super
+        @omniauth_providers.freeze
+      end
     end
   end
 end
