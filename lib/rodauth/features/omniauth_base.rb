@@ -10,6 +10,7 @@ module Rodauth
     redirect(:omniauth_failure)
 
     auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
+    auth_value_method :omniauth_autoroute?, true
     auth_value_method :omniauth_failure_error_status, 500
 
     auth_value_method :omniauth_authorize_url_key, "authorize_url"
@@ -40,6 +41,11 @@ module Rodauth
       self.class.roda_class.plugin :rodauth_omniauth
     end
 
+    def route!
+      super
+      route_omniauth! if omniauth_autoroute?
+    end
+
     def route_omniauth!
       omniauth_run omniauth_app
       nil
@@ -51,7 +57,7 @@ module Rodauth
       end
 
       define_method(:"omniauth_#{phase}_path") do |provider, params = {}|
-        path  = "#{omniauth_prefix}/#{provider}#{suffix}"
+        path  = "#{omniauth_path_prefix}/#{provider}#{suffix}"
         path += "?#{Rack::Utils.build_nested_query(params)}" unless params.empty?
         path
       end
@@ -82,6 +88,10 @@ module Rodauth
 
     private
 
+    def omniauth_path_prefix
+      "#{prefix if omniauth_autoroute?}#{omniauth_prefix}"
+    end
+
     def omniauth_run(app)
       omniauth_around_run do
         request.run app, not_found: :pass do |res|
@@ -93,18 +103,18 @@ module Rodauth
     # returns rack app with all registered strategies added to the middleware stack
     def build_omniauth_app
       builder = OmniAuth::Builder.new
-      self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
-        builder.provider provider, *args
-      end
+      builder.options(
+        path_prefix: omniauth_prefix,
+        setup: -> (env) { env["omniauth.rodauth"].send(:omniauth_setup, env["omniauth.strategy"].name) }
+      )
       builder.configure do |config|
         [:request_validation_phase, :before_request_phase, :before_callback_phase, :on_failure].each do |hook|
           config.send(:"#{hook}=", -> (env) { env["omniauth.rodauth"].send(:"omniauth_#{hook}", env["omniauth.strategy"].name) })
         end
       end
-      builder.options(
-        path_prefix: omniauth_prefix,
-        setup: -> (env) { env["omniauth.rodauth"].send(:omniauth_setup, env["omniauth.strategy"].name) }
-      )
+      self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
+        builder.provider provider, *args
+      end
       builder.run -> (env) { [404, {}, []] } # pass through
       builder
     end

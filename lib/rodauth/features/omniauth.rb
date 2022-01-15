@@ -33,8 +33,8 @@ module Rodauth
 
     auth_value_method :omniauth_provider_param, "provider"
 
-    auth_vaue_method :omniauth_auto_add_identity?, true
-    auth_vaue_method :omniauth_auto_create_account?, true
+    auth_value_method :omniauth_auto_add_identity?, true
+    auth_value_method :omniauth_auto_create_account?, true
 
     auth_value_methods(
       :omniauth_removal_requires_password?,
@@ -232,7 +232,7 @@ module Rodauth
 
     def _omniauth_login_links
       omniauth_providers.map do |provider|
-        [5, omniauth_request_path(provider), "Login via #{provider.capitalize}"]
+        [10, omniauth_request_path(provider), "Login via #{provider.capitalize}"]
       end
     end
 

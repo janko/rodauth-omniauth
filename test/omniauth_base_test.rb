@@ -7,12 +7,10 @@ describe "Rodauth omniauth_base feature" do
       omniauth_provider :developer
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is "developer/callback" do
-          rodauth.omniauth_auth.to_json
-        end
+      r.is "auth/developer/callback" do
+        rodauth.omniauth_auth.to_json
       end
     end
 
@@ -33,12 +31,10 @@ describe "Rodauth omniauth_base feature" do
       omniauth_provider :developer, uid_field: :name
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is "developer/callback" do
-          rodauth.omniauth_uid
-        end
+      r.is "auth/developer/callback" do
+        rodauth.omniauth_uid
       end
     end
 
@@ -59,30 +55,30 @@ describe "Rodauth omniauth_base feature" do
     assert_equal "[:developer]", page.text
   end
 
-  it "allows mapping omniauth strategies" do
-    rodauth do
-      enable :omniauth_base
-      omniauth_strategies(
-        :foo => :developer,
-        :bar => OmniAuth::Strategies::Developer,
-      )
-      omniauth_provider :foo
-      omniauth_provider :bar
-    end
-    roda do |r|
-      r.on("auth") { r.omniauth }
-      r.root { rodauth.omniauth_providers.inspect }
-    end
+  # it "allows mapping omniauth strategies" do
+  #   rodauth do
+  #     enable :omniauth_base
+  #     omniauth_strategies(
+  #       :foo => :developer,
+  #       :bar => OmniAuth::Strategies::Developer,
+  #     )
+  #     omniauth_provider :foo
+  #     omniauth_provider :bar
+  #   end
+  #   roda do |r|
+  #     r.rodauth
+  #     r.root { rodauth.omniauth_providers.inspect }
+  #   end
 
-    visit "/"
-    assert_equal "[:foo, :bar]", page.text
+  #   visit "/"
+  #   assert_equal "[:foo, :bar]", page.text
 
-    visit "/auth/foo"
-    assert_match "User Info", page.html
+  #   visit "/auth/foo"
+  #   assert_match "User Info", page.html
 
-    visit "/auth/bar"
-    assert_match "User Info", page.html
-  end
+  #   visit "/auth/bar"
+  #   assert_match "User Info", page.html
+  # end
 
   it "resolves omniauth strategies on configure" do
     rodauth do
@@ -98,15 +94,15 @@ describe "Rodauth omniauth_base feature" do
   it "allow setting omniauth prefix" do
     rodauth do
       enable :omniauth_base
-      omniauth_prefix "/other"
+      omniauth_prefix "/external"
       omniauth_provider :developer
     end
     roda do |r|
-      r.on("other") { r.omniauth }
+      r.rodauth
     end
 
-    visit "/other/developer"
-    assert_match "/other/developer/callback", page.html
+    visit "/external/developer"
+    assert_match "/external/developer/callback", page.html
   end
 
   it "defines helper methods for omniauth auth data" do
@@ -117,18 +113,16 @@ describe "Rodauth omniauth_base feature" do
       omniauth_provider :developer
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is "developer/callback" do
-          m.assert_equal :developer,      rodauth.omniauth_provider
-          m.assert_equal "janko@hey.com", rodauth.omniauth_uid
-          m.assert_equal "Janko",         rodauth.omniauth_info["name"]
-          m.assert_equal Hash.new,        rodauth.omniauth_credentials
-          m.assert_equal Hash.new,        rodauth.omniauth_extra
+      r.is "auth/developer/callback" do
+        m.assert_equal "developer",     rodauth.omniauth_provider
+        m.assert_equal "janko@hey.com", rodauth.omniauth_uid
+        m.assert_equal "Janko",         rodauth.omniauth_info["name"]
+        m.assert_equal Hash.new,        rodauth.omniauth_credentials
+        m.assert_equal Hash.new,        rodauth.omniauth_extra
 
-          ""
-        end
+        ""
       end
     end
 
@@ -143,16 +137,14 @@ describe "Rodauth omniauth_base feature" do
       omniauth_provider :developer
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is "developer/callback" do
-          m.assert_equal "bar", rodauth.omniauth_params["foo"]
-          m.assert_instance_of OmniAuth::Strategies::Developer, rodauth.omniauth_strategy
-          m.assert_equal "/foo", rodauth.omniauth_origin
+      r.is "auth/developer/callback" do
+        m.assert_equal "bar", rodauth.omniauth_params["foo"]
+        m.assert_instance_of OmniAuth::Strategies::Developer, rodauth.omniauth_strategy
+        m.assert_equal "/foo", rodauth.omniauth_origin
 
-          ""
-        end
+        ""
       end
     end
 
@@ -178,12 +170,10 @@ describe "Rodauth omniauth_base feature" do
       end
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.get "failure" do
-          "custom failure response"
-        end
+      r.get "auth/failure" do
+        "custom failure response"
       end
     end
 
@@ -191,7 +181,7 @@ describe "Rodauth omniauth_base feature" do
     assert_equal "custom failure response", page.html
   end
 
-  it "defines path, and url methods for request and callback routes" do
+  it "defines path and url methods for request and callback routes" do
     m = self
 
     rodauth do
@@ -200,13 +190,11 @@ describe "Rodauth omniauth_base feature" do
     end
     roda do |r|
       r.root do
-        m.assert_equal "developer",                                     rodauth.omniauth_request_route(:developer)
         m.assert_equal "/auth/developer",                               rodauth.omniauth_request_path(:developer)
         m.assert_equal "/auth/developer?foo=bar",                       rodauth.omniauth_request_path(:developer, foo: "bar")
         m.assert_equal "http://www.example.com/auth/developer",         rodauth.omniauth_request_url(:developer)
         m.assert_equal "http://www.example.com/auth/developer?foo=bar", rodauth.omniauth_request_url(:developer, foo: "bar")
 
-        m.assert_equal "developer/callback",                                     rodauth.omniauth_callback_route(:developer)
         m.assert_equal "/auth/developer/callback",                               rodauth.omniauth_callback_path(:developer)
         m.assert_equal "/auth/developer/callback?foo=bar",                       rodauth.omniauth_callback_path(:developer, foo: "bar")
         m.assert_equal "http://www.example.com/auth/developer/callback",         rodauth.omniauth_callback_url(:developer)
@@ -242,49 +230,46 @@ describe "Rodauth omniauth_base feature" do
     visit "/"
   end
 
-  it "raises exception in unregistered provider name" do
+  # it "raises exception in unregistered provider name" do
+  #   m = self
+
+  #   rodauth do
+  #     enable :omniauth_base
+  #     omniauth_provider :developer
+  #   end
+  #   roda do |r|
+  #     r.root do
+  #       m.assert_raises(ArgumentError) { rodauth.omniauth_request_path(:unknown) }
+  #       m.assert_raises(ArgumentError) { rodauth.omniauth_request_url(:unknown) }
+  #       m.assert_raises(ArgumentError) { rodauth.omniauth_callback_path(:unknown) }
+  #       m.assert_raises(ArgumentError) { rodauth.omniauth_callback_url(:unknown) }
+
+  #       ""
+  #     end
+  #   end
+
+  #   visit "/"
+  # end
+
+  it "sets path and url according to omniauth provider name" do
     m = self
 
     rodauth do
       enable :omniauth_base
-      omniauth_provider :developer
+      omniauth_provider :developer, name: :test
     end
     roda do |r|
       r.root do
-        m.assert_raises(ArgumentError) { rodauth.omniauth_request_path(:unknown) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_request_url(:unknown) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_callback_path(:unknown) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_callback_url(:unknown) }
-
-        ""
-      end
-    end
-
-    visit "/"
-  end
-
-  it "sets route, path and url according to omniauth provider name" do
-    m = self
-
-    rodauth do
-      enable :omniauth_base
-      omniauth_strategies :test => :developer
-      omniauth_provider :test
-    end
-    roda do |r|
-      r.root do
-        m.assert_equal "test",                              rodauth.omniauth_request_route(:test)
         m.assert_equal "/auth/test",                        rodauth.omniauth_request_path(:test)
         m.assert_equal "http://www.example.com/auth/test", rodauth.omniauth_request_url(:test)
 
-        m.assert_equal "test/callback",                              rodauth.omniauth_callback_route(:test)
         m.assert_equal "/auth/test/callback",                        rodauth.omniauth_callback_path(:test)
         m.assert_equal "http://www.example.com/auth/test/callback", rodauth.omniauth_callback_url(:test)
 
-        m.assert_raises(ArgumentError) { rodauth.omniauth_request_path(:developer) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_request_url(:developer) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_callback_path(:developer) }
-        m.assert_raises(ArgumentError) { rodauth.omniauth_callback_url(:developer) }
+        # m.assert_raises(ArgumentError) { rodauth.omniauth_request_path(:developer) }
+        # m.assert_raises(ArgumentError) { rodauth.omniauth_request_url(:developer) }
+        # m.assert_raises(ArgumentError) { rodauth.omniauth_callback_path(:developer) }
+        # m.assert_raises(ArgumentError) { rodauth.omniauth_callback_url(:developer) }
 
         ""
       end
@@ -293,38 +278,38 @@ describe "Rodauth omniauth_base feature" do
     visit "/"
   end
 
-  it "supports overriding request and callback routes" do
-    m = self
+  # it "supports overriding request and callback routes" do
+  #   m = self
 
-    rodauth do
-      enable :omniauth_base
-      omniauth_prefix "/other"
-      omniauth_provider :developer
-      omniauth_request_route { |provider| "#{provider}/request" }
-      omniauth_callback_route { |provider| "#{provider}/back" }
-    end
-    roda do |r|
-      r.on "other" do
-        r.omniauth
-        r.is("developer/back") { "" }
-      end
+  #   rodauth do
+  #     enable :omniauth_base
+  #     omniauth_prefix "/other"
+  #     omniauth_provider :developer
+  #     omniauth_request_route { |provider| "#{provider}/request" }
+  #     omniauth_callback_route { |provider| "#{provider}/back" }
+  #   end
+  #   roda do |r|
+  #     r.on "other" do
+  #       r.omniauth
+  #       r.is("developer/back") { "" }
+  #     end
 
-      r.root do
-        m.assert_equal "/other/developer/request",                       rodauth.omniauth_request_path(:developer)
-        m.assert_equal "http://www.example.com/other/developer/request", rodauth.omniauth_request_url(:developer)
+  #     r.root do
+  #       m.assert_equal "/other/developer/request",                       rodauth.omniauth_request_path(:developer)
+  #       m.assert_equal "http://www.example.com/other/developer/request", rodauth.omniauth_request_url(:developer)
 
-        m.assert_equal "/other/developer/back",                       rodauth.omniauth_callback_path(:developer)
-        m.assert_equal "http://www.example.com/other/developer/back", rodauth.omniauth_callback_url(:developer)
+  #       m.assert_equal "/other/developer/back",                       rodauth.omniauth_callback_path(:developer)
+  #       m.assert_equal "http://www.example.com/other/developer/back", rodauth.omniauth_callback_url(:developer)
 
-        ""
-      end
-    end
+  #       ""
+  #     end
+  #   end
 
-    visit "/"
+  #   visit "/"
 
-    omniauth_login "/other/developer/request"
-    assert_equal "/other/developer/back", page.current_path
-  end
+  #   omniauth_login "/other/developer/request"
+  #   assert_equal "/other/developer/back", page.current_path
+  # end
 
   it "supports strategy setup" do
     rodauth do
@@ -335,12 +320,10 @@ describe "Rodauth omniauth_base feature" do
       end
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is "developer/callback" do
-          rodauth.omniauth_uid
-        end
+      r.is "auth/developer/callback" do
+        rodauth.omniauth_uid
       end
     end
 
@@ -351,19 +334,16 @@ describe "Rodauth omniauth_base feature" do
   it "supports hooks before request and callback phases" do
     rodauth do
       enable :omniauth_base
-      omniauth_strategies :one => :developer, :two => :developer
-      omniauth_provider :one
-      omniauth_provider :two
+      omniauth_provider :developer, name: :one
+      omniauth_provider :developer, name: :two
       omniauth_before_request_phase { |provider| session["request_hook"] = provider }
       omniauth_before_callback_phase { |provider| session["callback_hook"] = provider }
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
+      r.rodauth
 
-        r.is ["one", "two"], "callback" do
-          [session["request_hook"], session["callback_hook"]].join(",")
-        end
+      r.is "auth", ["one", "two"], "callback" do
+        [session["request_hook"], session["callback_hook"]].join(",")
       end
     end
 
@@ -386,9 +366,7 @@ describe "Rodauth omniauth_base feature" do
       end
     end
     roda do |r|
-      r.on "auth" do
-        r.omniauth
-      end
+      r.rodauth
 
       r.root do
         <<~HTML
@@ -420,11 +398,10 @@ describe "Rodauth omniauth_base feature" do
       omniauth_provider :developer
     end
     roda do |r|
-      r.on("auth") do
-        r.omniauth
-        r.is "developer/callback" do
-          request.env["omniauth.params"].to_json
-        end
+      r.rodauth
+
+      r.is "auth/developer/callback" do
+        request.env["omniauth.params"].to_json
       end
     end
 
