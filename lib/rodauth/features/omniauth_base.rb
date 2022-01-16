@@ -105,11 +105,11 @@ module Rodauth
       builder = OmniAuth::Builder.new
       builder.options(
         path_prefix: omniauth_prefix,
-        setup: -> (env) { env["omniauth.rodauth"].send(:omniauth_setup, env["omniauth.strategy"].name) }
+        setup: -> (env) { env["rodauth.omniauth.instance"].send(:omniauth_setup, env["omniauth.strategy"].name) }
       )
       builder.configure do |config|
         [:request_validation_phase, :before_request_phase, :before_callback_phase, :on_failure].each do |hook|
-          config.send(:"#{hook}=", -> (env) { env["omniauth.rodauth"].send(:"omniauth_#{hook}", env["omniauth.strategy"].name) })
+          config.send(:"#{hook}=", -> (env) { env["rodauth.omniauth.instance"].send(:"omniauth_#{hook}", env["omniauth.strategy"].name) })
         end
       end
       self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
@@ -171,10 +171,10 @@ module Rodauth
     # Makes the Rodauth instance accessible inside OmniAuth strategies
     # and callbacks.
     def set_omniauth_rodauth
-      request.env["omniauth.rodauth"] = self
+      request.env["rodauth.omniauth.instance"] = self
       yield
     ensure
-      request.env.delete("omniauth.rodauth")
+      request.env.delete("rodauth.omniauth.instance")
     end
 
     # Returns authorization URL when using the JSON feature.
