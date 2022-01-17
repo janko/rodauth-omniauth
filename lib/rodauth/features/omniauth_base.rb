@@ -38,7 +38,6 @@ module Rodauth
       self.class.define_method(:omniauth_app) { omniauth_app }
 
       self.class.roda_class.plugin :run_handler
-      self.class.roda_class.plugin :rodauth_omniauth
     end
 
     def route!
