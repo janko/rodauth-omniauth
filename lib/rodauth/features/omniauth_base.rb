@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "omniauth"
-require "omniauth/version"
 
 module Rodauth
   Feature.define(:omniauth_base, :OmniauthBase) do
@@ -62,6 +61,12 @@ module Rodauth
       end
     end
 
+    %w[email name].each do |info_key|
+      define_method(:"omniauth_#{info_key}") do
+        omniauth_info[info_key]
+      end
+    end
+
     %w[provider uid info credentials extra].each do |auth_key|
       define_method(:"omniauth_#{auth_key}") do
         omniauth_auth.fetch(auth_key)
@@ -72,10 +77,6 @@ module Rodauth
       define_method(:"omniauth_#{data}") do
         request.env.fetch("omniauth.#{data.tr("_", ".")}")
       end
-    end
-
-    def omniauth_email
-      omniauth_info.fetch("email")
     end
 
     def omniauth_providers
@@ -104,11 +105,11 @@ module Rodauth
       builder = OmniAuth::Builder.new
       builder.options(
         path_prefix: omniauth_prefix,
-        setup: -> (env) { env["rodauth.omniauth.instance"].send(:omniauth_setup, env["omniauth.strategy"].name) }
+        setup: -> (env) { env["rodauth.omniauth.instance"].send(:omniauth_setup) }
       )
       builder.configure do |config|
         [:request_validation_phase, :before_request_phase, :before_callback_phase, :on_failure].each do |hook|
-          config.send(:"#{hook}=", -> (env) { env["rodauth.omniauth.instance"].send(:"omniauth_#{hook}", env["omniauth.strategy"].name) })
+          config.send(:"#{hook}=", -> (env) { env["rodauth.omniauth.instance"].send(:"omniauth_#{hook}") })
         end
       end
       self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
@@ -118,23 +119,23 @@ module Rodauth
       builder
     end
 
-    def omniauth_request_validation_phase(provider)
+    def omniauth_request_validation_phase
       check_csrf if check_csrf?
     end
 
-    def omniauth_before_request_phase(provider)
+    def omniauth_before_request_phase
       # can be overrridden to perform code before request phase
     end
 
-    def omniauth_before_callback_phase(provider)
+    def omniauth_before_callback_phase
       # can be overrridden to perform code before callback phase
     end
 
-    def omniauth_setup(provider)
+    def omniauth_setup
       # can be overridden to setup the strategy
     end
 
-    def omniauth_on_failure(provider)
+    def omniauth_on_failure
       set_redirect_error_status omniauth_failure_error_status
       set_redirect_error_flash omniauth_failure_error_flash
       redirect omniauth_failure_redirect

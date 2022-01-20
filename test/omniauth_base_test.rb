@@ -160,6 +160,8 @@ describe "Rodauth omniauth_base feature" do
       r.is "auth/developer/callback" do
         m.assert_equal "developer",     rodauth.omniauth_provider
         m.assert_equal "janko@hey.com", rodauth.omniauth_uid
+        m.assert_equal "janko@hey.com", rodauth.omniauth_email
+        m.assert_equal "Janko",         rodauth.omniauth_name
         m.assert_equal "Janko",         rodauth.omniauth_info["name"]
         m.assert_equal Hash.new,        rodauth.omniauth_credentials
         m.assert_equal Hash.new,        rodauth.omniauth_extra
@@ -199,10 +201,10 @@ describe "Rodauth omniauth_base feature" do
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
-      omniauth_before_callback_phase do |provider|
+      omniauth_before_callback_phase do
         omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
       end
-      omniauth_on_failure do |provider|
+      omniauth_on_failure do
         m.assert_equal :some_error, omniauth_error_type
         m.assert_instance_of KeyError, omniauth_error
         m.assert_equal "foo", omniauth_error.message
@@ -276,7 +278,7 @@ describe "Rodauth omniauth_base feature" do
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
-      omniauth_setup do |provider|
+      omniauth_setup do
         omniauth_strategy.options[:uid_field] = :name
       end
     end
@@ -297,8 +299,8 @@ describe "Rodauth omniauth_base feature" do
       enable :omniauth_base
       omniauth_provider :developer, name: :one
       omniauth_provider :developer, name: :two
-      omniauth_before_request_phase { |provider| session["request_hook"] = provider }
-      omniauth_before_callback_phase { |provider| session["callback_hook"] = provider }
+      omniauth_before_request_phase { session["request_hook"] = omniauth_strategy.name }
+      omniauth_before_callback_phase { session["callback_hook"] = omniauth_strategy.name }
     end
     roda do |r|
       r.rodauth
@@ -321,7 +323,7 @@ describe "Rodauth omniauth_base feature" do
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
-      omniauth_on_failure do |provider|
+      omniauth_on_failure do
         response.write "#{omniauth_error.class}: #{omniauth_error.message}"
         request.halt
       end
