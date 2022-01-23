@@ -124,7 +124,7 @@ describe "Rodauth omniauth_base feature" do
       enable :omniauth_base
       prefix "/user"
       omniauth_prefix "/auth"
-      omniauth_autoroute? false
+      route_omniauth? false
       omniauth_provider :developer
     end
     roda do |r|

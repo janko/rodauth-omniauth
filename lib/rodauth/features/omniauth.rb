@@ -6,21 +6,9 @@ module Rodauth
   Feature.define(:omniauth, :Omniauth) do
     depends :omniauth_base, :login
 
-    loaded_templates %w[omniauth-manage omniauth-remove]
-    view "omniauth-manage", "Manage External Identities", :omniauth_manage
-    view "omniauth-remove", "Disconnect External Identity", :omniauth_remove
-
-    additional_form_tags :omniauth_remove
-
-    before :omniauth_remove
-    after :omniauth_remove
-
-    notice_flash "The external identity has been connected to your account", :omniauth_connected
-    notice_flash "The external identity has been disconnected from your account", :omniauth_remove
-    error_flash "There was an error disconnecting the external identity", :omniauth_remove
-
-    redirect(:omniauth_connected)
-    redirect(:omniauth_remove)
+    before :omniauth_callback_route
+    before :omniauth_create_account
+    after :omniauth_create_account
 
     auth_value_method :omniauth_identities_table, :account_identities
     auth_value_method :omniauth_identities_id_column, :id
@@ -31,84 +19,31 @@ module Rodauth
     auth_value_method :omniauth_identities_credentials_column, :credentials
     auth_value_method :omniauth_identities_extra_column, :extra
 
-    auth_value_method :omniauth_provider_param, "provider"
-
-    auth_value_method :omniauth_auto_add_identity?, true
-    auth_value_method :omniauth_auto_create_account?, true
-
-    auth_value_methods(
-      :omniauth_removal_requires_password?,
-    )
+    auth_value_method :update_omniauth_identity?, true
+    auth_value_method :omniauth_create_account?, true
 
     auth_methods(
       :omniauth_create_account,
-      :before_omniauth_callback_route,
       :get_omniauth_identities,
       :create_omniauth_identity,
       :omniauth_identity_insert_hash,
+      :omniauth_identity_update_hash,
       :remove_omniauth_identities,
       :serialize_omniauth_data,
       :update_omniauth_identity,
-      :omniauth_identity_update_hash,
+      :omniauth_save_account,
     )
-
-    auth_cached_method :omniauth_add_links
-    auth_cached_method :omniauth_remove_links
-    auth_cached_method :omniauth_login_links
 
     auth_private_methods(
       :retrieve_omniauth_identity,
       :account_from_omniauth_identity,
+      :omniauth_new_account,
     )
-
-    route(:omniauth_manage) do |r|
-      require_account
-      before_omniauth_manage_route
-
-      r.get do
-        omniauth_manage_view
-      end
-    end
-
-    route(:omniauth_add) do |r|
-      require_account
-    end
-
-    route(:omniauth_remove) do |r|
-      require_account
-      before_omniauth_remove_route
-
-      r.get do
-        omniauth_remove_view
-      end
-
-      r.post do
-        provider = param(omniauth_provider_param)
-
-        catch_error do
-          if omniauth_removal_requires_password? && !password_match?(param(password_param))
-            throw_error_status(invalid_password_error_status, password_param, invalid_password_message)
-          end
-
-          transaction do
-            before_omniauth_remove
-            omniauth_remove(provider)
-            after_omniauth_remove
-          end
-
-          set_notice_flash omniauth_remove_notice_flash
-          redirect omniauth_remove_redirect
-        end
-
-        set_error_flash omniauth_remove_error_flash
-        omniauth_remove_view
-      end
-    end
 
     def route_omniauth!
       result = super
 
-      request.on omniauth_prefix do
+      request.on omniauth_prefix[1..-1] do
         omniauth_providers.each do |provider|
           handle_omniauth_callback(provider)
         end
@@ -118,8 +53,8 @@ module Rodauth
     end
 
     def handle_omniauth_callback(provider)
-      request.is omniauth_callback_route(provider) do
-        before_omniauth_callback_route(provider)
+      request.is "#{provider}/callback" do
+        before_omniauth_callback_route
         account_from_session if logged_in?
 
         retrieve_omniauth_identity
@@ -140,17 +75,18 @@ module Rodauth
 
         transaction do
           if omniauth_identity
-            update_omniauth_identity
+            update_omniauth_identity if update_omniauth_identity?
           else
             create_omniauth_identity
           end
 
           unless account
+            before_omniauth_create_account
             omniauth_create_account
-            @omniauth_account_created = true
+            after_omniauth_create_account
           end
 
-          if omniauth_auto_add_identity?
+          if add_omniauth_identity?
             add_omniauth_identity
           end
         end
@@ -170,6 +106,11 @@ module Rodauth
 
     def account_from_omniauth_identity
       @account = _account_from_omniauth_identity
+    end
+
+    def omniauth_create_account
+      omniauth_new_account
+      omniauth_save_account
     end
 
     def get_omniauth_identities
@@ -198,10 +139,6 @@ module Rodauth
       methods
     end
 
-    def omniauth_removal_requires_password?
-      modifications_require_password?
-    end
-
     def login_notice_flash
       if @omniauth_account_created
         create_account_notice_flash
@@ -213,33 +150,6 @@ module Rodauth
     private
 
     attr_reader :omniauth_identity
-
-    def _omniauth_add_links
-      (omniauth_providers - omniauth_connected_providers).map do |provider|
-        [omniauth_request_path(provider), "Connect #{provider.capitalize}"]
-      end
-    end
-
-    def _omniauth_remove_links
-      omniauth_connected_providers.map do |provider|
-        [omniauth_remove_path(provider), "Disconnect #{provider.capitalize}"]
-      end
-    end
-
-    def _login_form_footer_links
-      super + omniauth_login_links
-    end
-
-    def _omniauth_login_links
-      omniauth_providers.map do |provider|
-        [10, omniauth_request_path(provider), "Login via #{provider.capitalize}"]
-      end
-    end
-
-    def omniauth_create_account
-      @account = { login_column => omniauth_email }
-      @account[account_id_column] = db[accounts_table].insert(@account)
-    end
 
     def create_omniauth_identity
       identity_id = omniauth_identities_ds.insert(omniauth_identity_insert_hash)
@@ -278,6 +188,22 @@ module Rodauth
       account_ds(omniauth_identity_account_id).first
     end
 
+    def omniauth_new_account
+      @account = _omniauth_new_account(omniauth_email)
+    end
+
+    def omniauth_save_account
+      account[account_id_column] = db[accounts_table].insert(account)
+    end
+
+    def _omniauth_new_account(login)
+      acc = { login_column => login }
+      unless skip_status_checks?
+        acc[account_status_column] = account_open_status_value
+      end
+      acc
+    end
+
     def after_close_account
       super if defined?(super)
       remove_omniauth_identities
@@ -299,10 +225,6 @@ module Rodauth
 
     def omniauth_identities_ds
       db[omniauth_identities_table]
-    end
-
-    def before_omniauth_callback_route(provider)
-      # can be overridden to perform code before the callback handler
     end
 
     def serialize_omniauth_data(data)

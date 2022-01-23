@@ -9,7 +9,7 @@ module Rodauth
     redirect(:omniauth_failure)
 
     auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
-    auth_value_method :omniauth_autoroute?, true
+    auth_value_method :route_omniauth?, true
     auth_value_method :omniauth_failure_error_status, 500
 
     auth_value_method :omniauth_authorize_url_key, "authorize_url"
@@ -41,7 +41,7 @@ module Rodauth
 
     def route!
       super
-      route_omniauth! if omniauth_autoroute?
+      route_omniauth! if route_omniauth?
     end
 
     def route_omniauth!
@@ -89,7 +89,7 @@ module Rodauth
     private
 
     def omniauth_path_prefix
-      "#{prefix if omniauth_autoroute?}#{omniauth_prefix}"
+      "#{prefix if route_omniauth?}#{omniauth_prefix}"
     end
 
     def omniauth_run(app)

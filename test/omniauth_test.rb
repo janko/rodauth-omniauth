@@ -15,7 +15,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: rodauth.authenticated_by.join(",") }
     end
 
