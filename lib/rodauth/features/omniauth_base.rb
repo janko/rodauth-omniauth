@@ -113,7 +113,8 @@ module Rodauth
         end
       end
       self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
-        builder.provider provider, *args
+        options = args.pop if args.last.is_a?(Hash)
+        builder.provider provider, *args, **(options || {})
       end
       builder.run -> (env) { [404, {}, []] } # pass through
       builder
@@ -181,8 +182,8 @@ module Rodauth
     def handle_omniauth_response(res)
       return unless features.include?(:json) && use_json?
 
-      if status == 302
-        json_response[omniauth_authorize_url_key] = headers["Location"]
+      if res[0] == 302
+        json_response[omniauth_authorize_url_key] = res[1]["Location"]
         return_json_response
       end
     end

@@ -225,6 +225,23 @@ describe "Rodauth omniauth_base feature" do
     assert_equal "custom failure response", page.html
   end
 
+  it "has default failure handler" do
+    rodauth do
+      enable :omniauth_base
+      omniauth_provider :developer
+      omniauth_before_callback_phase do
+        omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
+      end
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "There was an error logging in with the external provider", page.find("#error_flash").text
+  end
+
   it "defines path and url methods for request and callback routes" do
     m = self
 
@@ -317,15 +334,14 @@ describe "Rodauth omniauth_base feature" do
     assert_equal "two,two", page.html
   end
 
-  it "supports requiring request phase to be POST" do
+  it "checks CSRF on request validation" do
     OmniAuth.config.allowed_request_methods = %i[post]
 
     rodauth do
       enable :omniauth_base
       omniauth_provider :developer
       omniauth_on_failure do
-        response.write "#{omniauth_error.class}: #{omniauth_error.message}"
-        request.halt
+        return_response "#{omniauth_error.class}: #{omniauth_error.message}"
       end
     end
     roda do |r|
@@ -355,6 +371,63 @@ describe "Rodauth omniauth_base feature" do
     OmniAuth.config.allowed_request_methods = %i[get post]
   end
 
+  it "returns authorize URL when using JSON" do
+    redirect_strategy = Class.new do
+      include OmniAuth::Strategy
+      def request_phase
+        redirect "/external/auth"
+      end
+    end
+
+    rodauth do
+      enable :omniauth_base, :json
+      omniauth_provider redirect_strategy, name: "developer"
+      check_csrf? false
+    end
+    roda(json: true) do |r|
+      r.rodauth
+    end
+
+    page.driver.post "/auth/developer", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+
+    assert_equal 200, page.status_code
+    assert_equal Hash["authorize_url" => "/external/auth"], JSON.parse(page.html)
+  end
+
+  it "stores OmniAuth data in JWT token" do
+    redirect_strategy = Class.new do
+      include OmniAuth::Strategy
+      def request_phase
+        redirect "/external/auth"
+      end
+    end
+
+    rodauth do
+      enable :omniauth_base, :jwt
+      jwt_secret "secret"
+      omniauth_provider redirect_strategy, name: "developer"
+      check_csrf? false
+    end
+    roda(json: true) do |r|
+      r.rodauth
+      r.post "auth/developer/callback" do
+        rodauth.omniauth_params.to_json
+      end
+    end
+
+    page.driver.get "/auth/developer?foo=bar", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+
+    jwt_token = page.response_headers["Authorization"]
+
+    page.driver.post "/auth/developer/callback", {}, {
+      "CONTENT_TYPE" => "application/json",
+      "HTTP_ACCEPT" => "application/json",
+      "HTTP_AUTHORIZATION" => jwt_token,
+    }
+
+    assert_equal %({"foo":"bar"}), page.html
+  end
+
   it "works with sessions roda plugin" do
     rodauth do
       enable :omniauth_base
@@ -370,5 +443,35 @@ describe "Rodauth omniauth_base feature" do
 
     omniauth_login "/auth/developer?foo=bar"
     assert_equal '{"foo":"bar"}', page.html
+  end
+
+  it "inherits omniauth providers on subclassing" do
+    rodauth do
+      enable :omniauth_base
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      r.on "secondary" do
+        r.rodauth(:secondary)
+      end
+    end
+
+    auth_subclass = Class.new(app.rodauth)
+    auth_subclass.configure do
+      prefix "/secondary"
+      omniauth_provider :developer, name: :other
+    end
+    app.plugin :rodauth, auth_class: auth_subclass, name: :secondary
+
+    visit "/secondary/auth/developer"
+    assert_equal 200, page.status_code
+    visit "/secondary/auth/other"
+    assert_equal 200, page.status_code
+
+    visit "/auth/developer"
+    assert_equal 200, page.status_code
+    visit "/auth/other"
+    assert_equal 404, page.status_code
   end
 end

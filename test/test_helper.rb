@@ -39,20 +39,6 @@ end
 OmniAuth.config.allowed_request_methods = %i[get post]
 OmniAuth.config.logger = Logger.new(nil)
 
-if Gem::Version.new(OmniAuth::VERSION) < Gem::Version.new("2.0")
-  class OmniAuth::Strategies::Developer
-    # monkey patch to include script name in form action path
-    def request_phase
-      form = OmniAuth::Form.new(:title => 'User Info', :url => script_name + callback_path)
-      options.fields.each do |field|
-        form.text_field field.to_s.capitalize.tr('_', ' '), field.to_s
-      end
-      form.button 'Sign In'
-      form.to_response
-    end
-  end
-end
-
 class Minitest::HooksSpec
   include Capybara::DSL
 
@@ -68,13 +54,13 @@ class Minitest::HooksSpec
     @rodauth_block = block
   end
 
-  def roda(&block)
+  def roda(**options, &block)
     app = Class.new(Roda)
     app.plugin :sessions, secret: SecureRandom.hex(32)
     app.plugin :render, layout_opts: { path: "test/views/layout.str" }
 
     rodauth_block = @rodauth_block
-    app.plugin :rodauth do
+    app.plugin :rodauth, **options do
       instance_exec(&rodauth_block)
       account_password_hash_column :password_hash
       skip_status_checks? false

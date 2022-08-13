@@ -43,17 +43,15 @@ module Rodauth
     def route_omniauth!
       result = super
 
-      request.on omniauth_prefix[1..-1] do
-        omniauth_providers.each do |provider|
-          handle_omniauth_callback(provider)
-        end
+      omniauth_providers.each do |provider|
+        handle_omniauth_callback(provider)
       end
 
       result
     end
 
     def handle_omniauth_callback(provider)
-      request.is "#{provider}/callback" do
+      request.is "#{omniauth_prefix[1..-1]}#{provider}/callback" do
         before_omniauth_callback_route
         account_from_session if logged_in?
 
@@ -86,9 +84,9 @@ module Rodauth
             after_omniauth_create_account
           end
 
-          if add_omniauth_identity?
-            add_omniauth_identity
-          end
+          # if add_omniauth_identity?
+          #   add_omniauth_identity
+          # end
         end
 
         if logged_in?

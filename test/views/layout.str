@@ -3,8 +3,8 @@
 <head>
 </head>
 <body>
-#{"<div id='error_flash'>#{flash[:error]}</div>" if flash[:error]}
-#{"<div id='notice_flash'>#{flash[:notice]}</div>" if flash[:notice]}
+#{"<div id='error_flash'>#{flash["error"]}</div>" if flash["error"]}
+#{"<div id='notice_flash'>#{flash["notice"]}</div>" if flash["notice"]}
 #{yield}
 </body>
 </html>

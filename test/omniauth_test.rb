@@ -41,7 +41,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: rodauth.authenticated_by.join(",") }
     end
 
@@ -64,7 +63,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: "#{rodauth.authenticated_by.join(",")} - #{rodauth.session_value}" }
     end
 
@@ -84,7 +82,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: rodauth.authenticated_by.join(",") }
     end
 
@@ -102,7 +99,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: "Logged in: #{!!rodauth.logged_in?}" }
     end
 
@@ -120,7 +116,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: rodauth.authenticated_by.join(",") }
     end
 
@@ -144,7 +139,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: "" }
     end
 
@@ -167,7 +161,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: "" }
     end
 
@@ -184,7 +177,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { view content: "" }
     end
 
@@ -221,7 +213,7 @@ describe "Rodauth omniauth feature" do
       omniauth_provider :developer
     end
     roda do |r|
-      r.on("auth") { r.omniauth }
+      r.rodauth
       r.root do
         identities = rodauth.get_omniauth_identities
         view content: rodauth.omniauth_connected_providers.inspect
@@ -243,7 +235,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { rodauth.possible_authentication_methods.join(",") }
     end
 
@@ -271,7 +262,6 @@ describe "Rodauth omniauth feature" do
     end
     roda do |r|
       r.rodauth
-      r.on("auth") { r.omniauth }
       r.root { "MFA setup: #{rodauth.two_factor_authentication_setup?}" }
     end
 
