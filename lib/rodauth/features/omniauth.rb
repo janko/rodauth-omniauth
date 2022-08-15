@@ -4,7 +4,7 @@ require "omniauth"
 
 module Rodauth
   Feature.define(:omniauth, :Omniauth) do
-    depends :omniauth_base, :login
+    depends :omniauth_base, :login, :create_account
 
     before :omniauth_callback_route
     before :omniauth_create_account
@@ -51,7 +51,7 @@ module Rodauth
     end
 
     def handle_omniauth_callback(provider)
-      request.is "#{omniauth_prefix[1..-1]}#{provider}/callback" do
+      request.is omniauth_callback_route(provider) do
         before_omniauth_callback_route
         account_from_session if logged_in?
 

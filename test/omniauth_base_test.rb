@@ -119,34 +119,6 @@ describe "Rodauth omniauth_base feature" do
     assert_equal "janko@hey.com", page.html
   end
 
-  it "allows disabling autorouting" do
-    rodauth do
-      enable :omniauth_base
-      prefix "/user"
-      omniauth_prefix "/auth"
-      route_omniauth? false
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.rodauth
-      rodauth.route_omniauth!
-
-      r.on "auth/developer/callback" do
-        rodauth.omniauth_uid
-      end
-
-      r.root { rodauth.omniauth_request_path(:developer) }
-    end
-
-    omniauth_login "/auth/developer", name: "Janko", email: "janko@hey.com"
-
-    assert_equal "/auth/developer/callback", page.current_path
-    assert_equal "janko@hey.com", page.html
-
-    visit "/"
-    assert_equal "/auth/developer", page.html
-  end
-
   it "defines helper methods for omniauth auth data" do
     m = self
 

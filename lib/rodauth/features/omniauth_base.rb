@@ -9,7 +9,6 @@ module Rodauth
     redirect(:omniauth_failure)
 
     auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
-    auth_value_method :route_omniauth?, true
     auth_value_method :omniauth_failure_error_status, 500
 
     auth_value_method :omniauth_authorize_url_key, "authorize_url"
@@ -41,7 +40,7 @@ module Rodauth
 
     def route!
       super
-      route_omniauth! if route_omniauth?
+      route_omniauth!
     end
 
     def route_omniauth!
@@ -51,13 +50,15 @@ module Rodauth
 
     { request: "", callback: "/callback" }.each do |phase, suffix|
       define_method(:"omniauth_#{phase}_url") do |provider, params = {}|
-        "#{base_url}#{send(:"omniauth_#{phase}_path", provider, params)}"
+        route_url(send(:"omniauth_#{phase}_route", provider), params)
       end
 
       define_method(:"omniauth_#{phase}_path") do |provider, params = {}|
-        path  = "#{omniauth_path_prefix}/#{provider}#{suffix}"
-        path += "?#{Rack::Utils.build_nested_query(params)}" unless params.empty?
-        path
+        route_path(send(:"omniauth_#{phase}_route", provider), params)
+      end
+
+      define_method(:"omniauth_#{phase}_route") do |provider|
+        "#{omniauth_prefix[1..-1]}/#{provider}#{suffix}"
       end
     end
 
@@ -87,10 +88,6 @@ module Rodauth
     end
 
     private
-
-    def omniauth_path_prefix
-      "#{prefix if route_omniauth?}#{omniauth_prefix}"
-    end
 
     def omniauth_run(app)
       omniauth_around_run do
