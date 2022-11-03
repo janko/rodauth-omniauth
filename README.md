@@ -207,13 +207,13 @@ URL helpers are provided as well:
 rodauth.prefix #=> "/user"
 rodauth.omniauth_prefix #=> "/auth"
 
-rodauth.omniauth_request_route #=> "auth/facebook"
-rodauth.omniauth_request_path #=> "/user/auth/facebook"
-rodauth.omniauth_request_url #=> "https://example.com/user/auth/facebook"
+rodauth.omniauth_request_route(:facebook) #=> "auth/facebook"
+rodauth.omniauth_request_path(:facebook) #=> "/user/auth/facebook"
+rodauth.omniauth_request_url(:facebook) #=> "https://example.com/user/auth/facebook"
 
-rodauth.omniauth_callback_route #=> "auth/facebook/callback"
-rodauth.omniauth_callback_path #=> "/user/auth/facebook/callback"
-rodauth.omniauth_callback_url #=> "https://example.com/user/auth/facebook/callback"
+rodauth.omniauth_callback_route(:facebook) #=> "auth/facebook/callback"
+rodauth.omniauth_callback_path(:facebook) #=> "/user/auth/facebook/callback"
+rodauth.omniauth_callback_url(:facebook) #=> "https://example.com/user/auth/facebook/callback"
 ```
 
 The prefix for the OmniAuth app can be changed:
