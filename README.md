@@ -360,6 +360,10 @@ Run tests with Rake:
 $ bundle exec rake test
 ```
 
+## Credits
+
+The implementation of this gem was inspired by [this OmniAuth guide](https://github.com/omniauth/omniauth/wiki/Managing-Multiple-Providers).
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
