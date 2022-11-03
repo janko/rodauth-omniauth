@@ -15,16 +15,28 @@ $ bundle add rodauth-omniauth
 You'll first need to create the table for storing external identities:
 
 ```rb
-Sequel.migration do                       # class CreateAccountIdentities < ActiveRecord::Migration
-  change do                               #   def change
-    create_table :account_identities do   #     create_table :account_identities do |t|
-      primary_key :id                     #       t.references :account, null: false, foreign_key: { on_delete: :cascade }
-      foreign_key :account_id, :accounts  #       t.string :provider, null: false
-      String :provider, null: false       #       t.string :uid, null: false
-      String :uid, null: false            #       t.index [:provider, :uid], unique: true
-      unique [:provider, :uid]            #     end
-    end                                   #   end
-  end                                     # end
+Sequel.migration do
+  change do
+    create_table :account_identities do
+      primary_key :id
+      foreign_key :account_id, :accounts
+      String :provider, null: false
+      String :uid, null: false
+      unique [:provider, :uid]
+    end
+  end
+end
+```
+```rb
+class CreateAccountIdentities < ActiveRecord::Migration
+  def change
+    create_table :account_identities do |t|
+      t.references :account, null: false, foreign_key: { on_delete: :cascade }
+      t.string :provider, null: false
+      t.string :uid, null: false
+      t.index [:provider, :uid], unique: true
+    end
+  end
 end
 ```
 
