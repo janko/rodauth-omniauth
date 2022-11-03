@@ -357,7 +357,7 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Rodauth::Pwned project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/janko/rodauth-pwned/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the rodauth-omniauth project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/janko/rodauth-pwned/blob/master/CODE_OF_CONDUCT.md).
 
 [Rodauth]: https://github.com/jeremyevans/rodauth
 [OmniAuth]: https://github.com/omniauth/omniauth
