@@ -1,6 +1,6 @@
 # rodauth-omniauth
 
-[Rodauth] feature that offers login and registration via multiple external providers using [OmniAuth]. The external identities are automatically stored in the database, and associated to the main account record.
+[Rodauth] feature that offers login and registration via multiple external providers using [OmniAuth], together with the persistence of external identities.
 
 ## Installation
 
