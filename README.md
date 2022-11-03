@@ -15,16 +15,16 @@ $ bundle add rodauth-omniauth
 You'll first need to create the table for storing external identities:
 
 ```rb
-Sequel.migration do                      # class CreateAccountIdentities < ActiveRecord::Migration
-  change do                              #   def change
-    create_table :account_identities do  #     create_table :account_identities do |t|
-      primary_key :id                    #       t.references :account, null: false, foreign_key: { on_delete: :cascade }
-      foreign_key :account_id, :accounts #       t.string :provider, null: false
-      String :provider, null: false      #       t.string :uid, null: false
-      String :uid, null: false           #       t.index [:provider, :uid], unique: true
-      unique [:provider, :uid]           #     end
-    end                                  #   end
-  end                                    # end
+Sequel.migration do                       # class CreateAccountIdentities < ActiveRecord::Migration
+  change do                               #   def change
+    create_table :account_identities do   #     create_table :account_identities do |t|
+      primary_key :id                     #       t.references :account, null: false, foreign_key: { on_delete: :cascade }
+      foreign_key :account_id, :accounts  #       t.string :provider, null: false
+      String :provider, null: false       #       t.string :uid, null: false
+      String :uid, null: false            #       t.index [:provider, :uid], unique: true
+      unique [:provider, :uid]            #     end
+    end                                   #   end
+  end                                     # end
 end
 ```
 
@@ -66,7 +66,7 @@ DB[:accounts].all
 #=> [{ id: 123, status_id: 2, email: "user@example.com" }]
 DB[:account_identities].all
 #=> [{ id: 456, account_id: 123, provider: "facebook", uid: "984346198764" },
-#=>  { id: 789, account_id: 123, provider: "google", uid: "5871623487134"}]
+#    { id: 789, account_id: 123, provider: "google", uid: "5871623487134"}]
 ```
 
 Currently, provider login is required to return the user's email address, and account creation is assumed not to require additional fields that need to be entered manually. There is currently also no built-in functionality for connecting/removing external identities when signed in. Both features are planned for future versions.
