@@ -59,16 +59,11 @@ You can now add authentication links to your login form:
 
 ```erb
 <!-- app/views/rodauth/_login_form_footer.html.erb -->
-<%== rodauth.login_form_footer_links_heading %>
-
-<ul>
+<!-- ... -->
   <li><%= button_to "Login via Facebook", rodauth.omniauth_request_path(:facebook), method: :post, data: { turbo: false }, class: "btn btn-link p-0" %></li>
   <li><%= button_to "Login via Twitter", rodauth.omniauth_request_path(:twitter), method: :post, data: { turbo: false }, class: "btn btn-link p-0" %></li>
   <li><%= button_to "Login via Google", rodauth.omniauth_request_path(:google), method: :post, data: { turbo: false }, class: "btn btn-link p-0" %></li>
-  <% rodauth.login_form_footer_links.each do |_, link, text| %>
-    <li><%= link_to text, link %></li>
-  <% end %>
-</ul>
+<!-- ... -->
 ```
 
 Assuming you configured the providers correctly, you should now be able to authenticate via an external provider. The `omniauth` feature handles the callback request, automatically creating new identities and verified accounts from those identities as needed.
