@@ -33,7 +33,7 @@ module Rodauth
       super
 
       omniauth_app = build_omniauth_app.to_app
-      self.class.define_method(:omniauth_app) { omniauth_app }
+      self.class.send(:define_method, :omniauth_app) { omniauth_app }
 
       self.class.roda_class.plugin :run_handler
     end
