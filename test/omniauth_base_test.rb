@@ -366,6 +366,33 @@ describe "Rodauth omniauth_base feature" do
     assert_equal Hash["authorize_url" => "/external/auth"], JSON.parse(page.html)
   end
 
+  it "returns error type when using JSON" do
+    redirect_strategy = Class.new do
+      include OmniAuth::Strategy
+      def request_phase
+        redirect "/external/auth"
+      end
+    end
+
+    rodauth do
+      enable :omniauth_base, :json
+      omniauth_provider redirect_strategy, name: "developer"
+      omniauth_before_callback_phase do
+        omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
+      end
+      check_csrf? false
+    end
+    roda(json: true) do |r|
+      r.rodauth
+    end
+
+    page.driver.post "/auth/developer", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+    page.driver.post "/auth/developer/callback", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+
+    assert_equal 500, page.status_code
+    assert_equal Hash["error_type" => "some_error", "error" => "There was an error logging in with the external provider"], JSON.parse(page.html)
+  end
+
   it "stores OmniAuth data in JWT token" do
     redirect_strategy = Class.new do
       include OmniAuth::Strategy

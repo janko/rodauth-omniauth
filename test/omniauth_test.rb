@@ -5,10 +5,11 @@ describe "Rodauth omniauth feature" do
     DB[:accounts].insert(
       email: "janko@hey.com",
       password_hash: BCrypt::Password.create("secret", cost: 1),
+      status_id: 2,
     )
   end
 
-  it "connects new external identities for logged in account" do
+  it "creates new accounts from external identity" do
     rodauth do
       enable :omniauth
       omniauth_provider :developer
@@ -18,44 +19,22 @@ describe "Rodauth omniauth feature" do
       r.root { view content: rodauth.authenticated_by.join(",") }
     end
 
-    login
-    omniauth_login "/auth/developer", name: "Janko", email: "janko@other.com"
-    assert_equal "The external identity has been connected", page.find("#notice_flash").text
-    assert_match "password", page.html
-
-    assert_equal [{
-      id:          1,
-      account_id:  1,
-      provider:    "developer",
-      uid:         "janko@other.com",
-      info:        '{"name":"Janko","email":"janko@other.com"}',
-      credentials: '{}',
-      extra:       '{}',
-    }], DB[:account_identities].all
-  end
-
-  it "handles existing external identities for logged in account" do
-    rodauth do
-      enable :omniauth, :logout
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.rodauth
-      r.root { view content: rodauth.authenticated_by.join(",") }
-    end
-
-    login
     omniauth_login "/auth/developer", email: "janko@other.com"
-    logout
+    assert_equal "You have been logged in", page.find("#notice_flash").text
+    assert_match "omniauth", page.html
 
-    login
-    omniauth_login "/auth/developer", email: "janko@other.com"
-    assert_equal "The external identity has been connected", page.find("#notice_flash").text
-    assert_match "password", page.html
+    account = DB[:accounts].order(:id).last
+    assert_equal "janko@other.com", account[:email]
+    assert_equal 2, account[:status_id]
+
+    identity = DB[:account_identities].first
+    assert_equal "janko@other.com", identity[:uid]
+    assert_equal account[:id], identity[:account_id]
   end
 
   it "logs in account already connected to an external identity" do
-    DB[:accounts].insert(email: "janko@other.com")
+    DB[:account_identities].insert(account_id: 1, provider: "developer", uid: "janko@other.com")
+    DB[:accounts].insert(email: "janko@other.com", status_id: 2)
 
     rodauth do
       enable :omniauth, :logout
@@ -65,10 +44,6 @@ describe "Rodauth omniauth feature" do
       r.rodauth
       r.root { view content: "#{rodauth.authenticated_by.join(",")} - #{rodauth.session_value}" }
     end
-
-    login
-    omniauth_login "/auth/developer", email: "janko@other.com"
-    logout
 
     omniauth_login "/auth/developer", email: "janko@other.com"
     assert_equal "You have been logged in", page.find("#notice_flash").text
@@ -88,9 +63,10 @@ describe "Rodauth omniauth feature" do
     omniauth_login "/auth/developer"
     assert_equal "You have been logged in", page.find("#notice_flash").text
     assert_match "omniauth", page.html
+    assert_equal 1, DB[:accounts].count
   end
 
-  it "doesn't log in unopen accounts" do
+  it "doesn't log in unverified accounts" do
     DB[:accounts].update(status_id: 1)
 
     rodauth do
@@ -103,61 +79,22 @@ describe "Rodauth omniauth feature" do
     end
 
     omniauth_login "/auth/developer"
-    assert_equal "There was an error logging in (unverified account, please verify account before logging in)", page.find("#error_flash").text
-    assert_match "Logged in: false", page.html
-  end
+    assert_equal "The account matching the external identity is currently awaiting verification", page.find("#error_flash").text
+    assert_equal "/login", page.current_path
 
-  it "creates new accounts from external identity" do
-    DB[:accounts].delete
-
-    rodauth do
-      enable :omniauth
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.rodauth
-      r.root { view content: rodauth.authenticated_by.join(",") }
-    end
-
-    omniauth_login "/auth/developer", email: "janko@hey.com"
-    assert_equal "Your account has been created", page.find("#notice_flash").text
-    assert_match "omniauth", page.html
-
-    assert_equal "janko@hey.com", DB[:accounts].first[:email]
-    assert_equal "janko@hey.com", DB[:account_identities].first[:uid]
-  end
-
-  it "connects external identities belonging to other account" do
-    DB[:accounts].insert(
-      email: "janko@other.com",
-      password_hash: BCrypt::Password.create("secret", cost: 1)
-    )
-
-    rodauth do
-      enable :omniauth, :logout
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.rodauth
-      r.root { view content: "" }
-    end
-
-    login(email: "janko@other.com")
-    omniauth_login "/auth/developer", email: "janko@other.com"
-    logout
-
-    login(email: "janko@hey.com")
-    omniauth_login "/auth/developer", email: "janko@other.com"
-    assert_equal "The external identity has been connected", page.find("#notice_flash").text
-
-    assert_equal 1, DB[:account_identities].count
-    assert_equal 1, DB[:account_identities].first[:account_id]
+    visit "/"
+    assert_includes page.html, "Logged in: false"
   end
 
   it "updates existing external identities with new data" do
+    DB.add_column :account_identities, :info, :json, default: "{}"
+
     rodauth do
       enable :omniauth
       omniauth_provider :developer
+      omniauth_identity_update_hash do
+        { info: omniauth_info.to_json }
+      end
     end
     roda do |r|
       r.rodauth
@@ -185,47 +122,10 @@ describe "Rodauth omniauth feature" do
     visit "/close-account"
     fill_in "Password", with: "secret"
     click_on "Close"
-
     assert DB[:account_identities].empty?
-  end
-
-  it "adds omniauth login links to login form footer" do
-    rodauth do
-      enable :omniauth
-      omniauth_strategies :foo => :developer, :bar => :developer
-      omniauth_provider :foo
-      omniauth_provider :bar
-    end
-    roda do |r|
-      r.rodauth
-    end
-
-    visit "/login"
-    assert_match %(<a href="/auth/foo">Login via Foo</a>), page.html
-    assert_match %(<a href="/auth/bar">Login via Bar</a>), page.html
-  end
-
-  it "supports retrieving connected omniauth identities" do
-    identities = nil
-
-    rodauth do
-      enable :omniauth
-      omniauth_provider :developer
-    end
-    roda do |r|
-      r.rodauth
-      r.root do
-        identities = rodauth.get_omniauth_identities
-        view content: rodauth.omniauth_connected_providers.inspect
-      end
-    end
 
     omniauth_login "/auth/developer"
-
-    assert_match "[:developer]", page.html
-
-    assert_equal "developer", identities[0][:provider]
-    assert_equal 1, identities[0][:account_id]
+    assert_equal 2, DB[:accounts].count
   end
 
   it "adds omniauth to possible authentication methods" do
@@ -256,8 +156,15 @@ describe "Rodauth omniauth feature" do
       primary_key [:id, :code]
     end
 
+    DB.create_table :account_email_auth_keys do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+
     rodauth do
-      enable :omniauth, :recovery_codes
+      enable :omniauth, :recovery_codes, :email_auth
       omniauth_provider :developer
     end
     roda do |r|
@@ -275,5 +182,39 @@ describe "Rodauth omniauth feature" do
     DB[:account_recovery_codes].insert(id: 1, code: "code")
     visit "/"
     assert_equal "MFA setup: true", page.html
+  end
+
+  it "allows modifying created account" do
+    DB.add_column :accounts, :name, String
+
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+      before_omniauth_create_account { account[:name] = omniauth_info[:name] }
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: rodauth.authenticated_by.join(",") }
+    end
+
+    omniauth_login "/auth/developer", name: "Name", email: "janko@other.com"
+    account = DB[:accounts].order(:id).last
+    assert_equal "Name", account[:name]
+  end
+
+  it "allows retrieving created omniauth strategy before login" do
+    identity_id = nil
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+      before_login { identity_id = omniauth_identity_id }
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: rodauth.authenticated_by.join(",") }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal 1, identity_id
   end
 end

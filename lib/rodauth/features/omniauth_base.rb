@@ -6,7 +6,7 @@ module Rodauth
   Feature.define(:omniauth_base, :OmniauthBase) do
     error_flash "There was an error logging in with the external provider", :omniauth_failure
 
-    redirect(:omniauth_failure)
+    redirect :omniauth_failure
 
     auth_value_method :omniauth_prefix, OmniAuth.config.path_prefix
     auth_value_method :omniauth_failure_error_status, 500
@@ -134,6 +134,10 @@ module Rodauth
     end
 
     def omniauth_on_failure
+      if features.include?(:json) && use_json?
+        json_response[omniauth_error_type_key] = omniauth_error_type
+      end
+
       set_redirect_error_status omniauth_failure_error_status
       set_redirect_error_flash omniauth_failure_error_flash
       redirect omniauth_failure_redirect
@@ -183,6 +187,10 @@ module Rodauth
         json_response[omniauth_authorize_url_key] = res[1]["Location"]
         return_json_response
       end
+    end
+
+    def omniauth_request?
+      request.env.key?("omniauth.strategy")
     end
 
     def self.included(auth)

@@ -2,7 +2,7 @@ Gem::Specification.new do |spec|
   spec.name          = "rodauth-omniauth"
   spec.version       = "0.1.0"
   spec.authors       = ["Janko Marohnić"]
-  spec.email         = ["janko.marohnic@gmail.com"]
+  spec.email         = ["janko@hey.com"]
 
   spec.summary       = "Rodauth extension for logging in and creating account via OmniAuth authentication."
   spec.description   = "Rodauth extension for logging in and creating account via OmniAuth authentication."
@@ -24,6 +24,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest-hooks"
   spec.add_development_dependency "tilt"
   spec.add_development_dependency "bcrypt"
+  spec.add_development_dependency "mail"
+  spec.add_development_dependency "net-smtp"
   spec.add_development_dependency "capybara"
   spec.add_development_dependency "jwt"
 end

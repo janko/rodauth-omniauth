@@ -11,18 +11,16 @@ require "securerandom"
 
 require "sequel/core"
 require "roda"
-require "roda"
 require "omniauth"
-require "omniauth/version"
 require "bcrypt"
 
-DB = Sequel.sqlite
+DB = Sequel.connect("#{"jdbc:" if RUBY_ENGINE == "jruby"}sqlite::memory")
 
 DB.create_table :accounts do
   primary_key :id
   String :email, null: false
   String :password_hash
-  Integer :status_id, null: false, default: 2
+  Integer :status_id, null: false, default: 1
 end
 
 DB.create_table :account_identities do
@@ -30,9 +28,6 @@ DB.create_table :account_identities do
   foreign_key :account_id, :accounts
   String :provider, null: false
   String :uid, null: false
-  json :info, null: false, default: "{}"
-  json :credentials, null: false, default: "{}"
-  json :extra, null: false, default: "{}"
   unique [:provider, :uid]
 end
 
