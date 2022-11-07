@@ -323,9 +323,11 @@ JSON requests are supported for the request and callback phases. The request pha
 POST /auth/facebook
 Accept: application/json
 Content-Type: application/json
-
+```
+```http
 200 OK
 Content-Type: application/json
+
 { "authorize_url": "https://external.com/login" }
 ```
 
@@ -335,9 +337,11 @@ If there was a login failure, the error type will be included in the response:
 POST /auth/facebook/callback
 Accept: application/json
 Content-Type: application/json
-
+```
+```http
 500 Internal Server Error
 Content-Type: application/json
+
 { "error_type": "some_error", "error": "There was an error logging in with the external provider" }
 ```
 
