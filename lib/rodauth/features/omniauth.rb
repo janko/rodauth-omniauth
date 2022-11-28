@@ -112,6 +112,11 @@ module Rodauth
 
     private
 
+    def before_confirm_password
+      authenticated_by.delete("omniauth")
+      super if defined?(super)
+    end
+
     def allow_email_auth?
       (defined?(super) ? super : true) && omniauth_account_identities_ds.empty?
     end

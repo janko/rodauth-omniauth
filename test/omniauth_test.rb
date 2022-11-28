@@ -217,4 +217,23 @@ describe "Rodauth omniauth feature" do
     omniauth_login "/auth/developer"
     assert_equal 1, identity_id
   end
+
+  it "disallows being used as 2nd factor with password authentication" do
+    rodauth do
+      enable :omniauth, :confirm_password
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      rodauth.require_password_authentication
+      r.root { rodauth.authenticated_by.join(",") }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "/confirm-password", page.current_path
+
+    fill_in "Password", with: "secret"
+    click_on "Confirm Password"
+    assert_equal "password", page.html
+  end
 end
