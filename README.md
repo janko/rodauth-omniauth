@@ -103,7 +103,7 @@ after_omniauth_create_account do
 end
 ```
 
-When the account is closed, its external identities are automatically cleared from the database.
+When the account is closed, its external identities are automatically deleted from the database.
 
 ### Identity data
 
