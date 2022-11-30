@@ -88,7 +88,15 @@ before_omniauth_callback_route do
 end
 ```
 
-If the external identity doesn't already exist, and there is an account with email matching the identity's, the new identity will be assigned to that account.
+If the external identity doesn't already exist, and there is an account with email matching the identity's, the new identity will be assigned to that account. You can change how existing accounts are searched after provider login:
+
+```rb
+account_from_omniauth do
+  account_table_ds.first(email: omniauth_email) # roughly the default implementation
+end
+# or
+account_from_omniauth {} # disable finding existing accounts for new identities
+```
 
 If the local account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the external login will abort during the callback phase. You can change the default error flash and redirect location in this case:
 

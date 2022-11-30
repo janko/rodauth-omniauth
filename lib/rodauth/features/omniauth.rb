@@ -31,6 +31,7 @@ module Rodauth
 
     auth_private_methods(
       :retrieve_omniauth_identity,
+      :account_from_omniauth,
       :account_from_omniauth_identity,
       :omniauth_new_account,
     )
@@ -57,7 +58,7 @@ module Rodauth
       end
 
       unless account
-        account_from_login(omniauth_email)
+        account_from_omniauth
       end
 
       if account && !open_account?
@@ -90,6 +91,10 @@ module Rodauth
 
     def account_from_omniauth_identity
       @account = _account_from_omniauth_identity
+    end
+
+    def account_from_omniauth
+      @account = _account_from_omniauth
     end
 
     def omniauth_new_account
@@ -167,6 +172,10 @@ module Rodauth
         omniauth_identities_provider_column => provider.to_s,
         omniauth_identities_uid_column => uid,
       )
+    end
+
+    def _account_from_omniauth
+      _account_from_login(omniauth_email)
     end
 
     def _account_from_omniauth_identity
