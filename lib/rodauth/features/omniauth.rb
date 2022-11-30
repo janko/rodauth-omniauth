@@ -117,6 +117,11 @@ module Rodauth
       super if defined?(super)
     end
 
+    def after_close_account
+      super if defined?(super)
+      remove_omniauth_identities
+    end
+
     def allow_email_auth?
       (defined?(super) ? super : true) && omniauth_account_identities_ds.empty?
     end
@@ -166,11 +171,6 @@ module Rodauth
 
     def _account_from_omniauth_identity
       account_ds(omniauth_identity_account_id).first
-    end
-
-    def after_close_account
-      super if defined?(super)
-      remove_omniauth_identities
     end
 
     def omniauth_identity_id
