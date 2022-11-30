@@ -80,7 +80,15 @@ Currently, provider login is required to return the user's email address, and ac
 
 ### Login
 
-After provider login, if the external identity doesn't already exist, and there is an account with email matching the identity's, the new identity will be assigned to that account.
+After provider login, you can perform custom logic at the start of the request:
+
+```rb
+before_omniauth_callback_route do
+  omniauth_provider #=> :google
+end
+```
+
+If the external identity doesn't already exist, and there is an account with email matching the identity's, the new identity will be assigned to that account.
 
 If the local account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the external login will abort during the callback phase. You can change the default error flash and redirect location in this case:
 
