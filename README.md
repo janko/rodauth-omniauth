@@ -80,7 +80,7 @@ Currently, provider login is required to return the user's email address, and ac
 
 ### Login
 
-After provider login, you can perform custom logic at the start of the request:
+After provider login, you can perform custom logic at the start of the callback request:
 
 ```rb
 before_omniauth_callback_route do
@@ -98,7 +98,7 @@ end
 account_from_omniauth {} # disable finding existing accounts for new identities
 ```
 
-If the local account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the external login will abort during the callback phase. You can change the default error flash and redirect location in this case:
+If the account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the callback phase will return an error response, as only verified accounts can be logged into. You can change the default error flash and redirect location in this case:
 
 ```rb
 omniauth_login_unverified_account_error_flash "The account matching the external identity is currently awaiting verification"
@@ -107,9 +107,7 @@ omniauth_login_failure_redirect { require_login_redirect }
 
 ### Account creation
 
-Since provider accounts have verified the email address, local accounts created via external logins are automatically considered verified.
-
-If you want to use extra user information for account creation, you can do so via hooks:
+Accounts created via external login are automatically verified, because it's assumed your email address was verified by the external provider. If you want to use extra user information for account creation, you can do so via hooks:
 
 ```rb
 before_omniauth_create_account { account[:name] = omniauth_name }
@@ -143,7 +141,7 @@ omniauth_identity_update_hash do
 end
 ```
 
-With this configuration, the identity record will be automatically synced with most recent state on each provider login. If you would like to only save provider data on first login, you can override the insert hash instead:
+With this configuration, the identity record will be automatically synced with most recent state on each provider login. If you would like to only save provider data when the identity is created, you can override the insert hash instead:
 
 ```rb
 # this data will be stored only on first login
@@ -370,7 +368,7 @@ omniauth_error_type_key "error_type"
 
 ### JWT
 
-JWT requests are supported for the request and callback phases. OmniAuth information will be stored in JWT session data during the request phase, and restored during the callback phase, as long as the updated JWT token is passed.
+JWT requests are supported for the request and callback phases. OmniAuth data will be stored in the JWT token during the request phase, and restored during the callback phase, as long as the updated JWT token is passed.
 
 ## Development
 
