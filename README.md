@@ -154,6 +154,16 @@ omniauth_identity_insert_hash do
 end
 ```
 
+You can change the table name or any column names:
+
+```rb
+omniauth_identities_table :account_identities
+omniauth_identities_id_column :id
+omniauth_identities_account_id_column :account_id
+omniauth_identities_provider_column :provider
+omniauth_identities_uid_column :uid
+```
+
 ### Model associations
 
 When using the [rodauth-model] gem, an `identities` one-to-many association will be defined on the account model:
