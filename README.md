@@ -154,7 +154,7 @@ omniauth_identity_insert_hash do
 end
 ```
 
-You can change the table name or any column names:
+You can change the table name or any of the column names:
 
 ```rb
 omniauth_identities_table :account_identities
