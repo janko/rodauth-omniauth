@@ -62,7 +62,7 @@ module Rodauth
       end
 
       if account && !open_account?
-        set_redirect_error_status unopen_account_error_status
+        set_response_error_reason_status(:unverified_account, unopen_account_error_status)
         set_redirect_error_flash omniauth_login_unverified_account_error_flash
         redirect omniauth_login_failure_redirect
       end
