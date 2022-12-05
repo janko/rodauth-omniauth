@@ -164,11 +164,11 @@ module Rodauth
     # Makes OmniAuth strategies use the JWT session hash.
     def set_omniauth_jwt_session
       rack_session = request.env["rack.session"]
-      session.transform_keys!(&:to_s) unless scope.opts[:sessions_convert_symbols]
+      session.keys.each { |k| session[k.to_s] = session.delete(k) } unless scope.opts[:sessions_convert_symbols]
       request.env["rack.session"] = session
       yield
     ensure
-      session.transform_keys!(&:to_sym) unless scope.opts[:sessions_convert_symbols]
+      session.keys.each { |k| session[k.to_sym] = session.delete(k) } unless scope.opts[:sessions_convert_symbols]
       request.env["rack.session"] = rack_session
     end
 
