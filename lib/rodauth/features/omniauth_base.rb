@@ -138,7 +138,7 @@ module Rodauth
         json_response[omniauth_error_type_key] = omniauth_error_type
       end
 
-      set_redirect_error_status omniauth_failure_error_status
+      set_response_error_reason_status(:omniauth_failure, omniauth_failure_error_status)
       set_redirect_error_flash omniauth_failure_error_flash
       redirect omniauth_failure_redirect
     end
