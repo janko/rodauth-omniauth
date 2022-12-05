@@ -393,38 +393,40 @@ describe "Rodauth omniauth_base feature" do
     assert_equal Hash["error_type" => "some_error", "error" => "There was an error logging in with the external provider"], JSON.parse(page.html)
   end
 
-  it "stores OmniAuth data in JWT token" do
-    redirect_strategy = Class.new do
-      include OmniAuth::Strategy
-      def request_phase
-        redirect "/external/auth"
+  [:plugin, :rack].each do |sessions|
+    it "stores OmniAuth data in JWT token when using #{sessions} sessions" do
+      redirect_strategy = Class.new do
+        include OmniAuth::Strategy
+        def request_phase
+          redirect "/external/auth"
+        end
       end
-    end
 
-    rodauth do
-      enable :omniauth_base, :jwt
-      jwt_secret "secret"
-      omniauth_provider redirect_strategy, name: "developer"
-      check_csrf? false
-    end
-    roda(json: true) do |r|
-      r.rodauth
-      r.post "auth/developer/callback" do
-        rodauth.omniauth_params.to_json
+      rodauth do
+        enable :omniauth_base, :jwt
+        jwt_secret "secret"
+        omniauth_provider redirect_strategy, name: "developer"
+        check_csrf? false
       end
+      roda(json: true, sessions: sessions) do |r|
+        r.rodauth
+        r.post "auth/developer/callback" do
+          rodauth.omniauth_params.to_json
+        end
+      end
+
+      page.driver.get "/auth/developer?foo=bar", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+
+      jwt_token = page.response_headers["Authorization"]
+
+      page.driver.post "/auth/developer/callback", {}, {
+        "CONTENT_TYPE" => "application/json",
+        "HTTP_ACCEPT" => "application/json",
+        "HTTP_AUTHORIZATION" => jwt_token,
+      }
+
+      assert_equal %({"foo":"bar"}), page.html
     end
-
-    page.driver.get "/auth/developer?foo=bar", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
-
-    jwt_token = page.response_headers["Authorization"]
-
-    page.driver.post "/auth/developer/callback", {}, {
-      "CONTENT_TYPE" => "application/json",
-      "HTTP_ACCEPT" => "application/json",
-      "HTTP_AUTHORIZATION" => jwt_token,
-    }
-
-    assert_equal %({"foo":"bar"}), page.html
   end
 
   it "works with sessions roda plugin" do
