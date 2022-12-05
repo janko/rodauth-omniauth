@@ -185,7 +185,7 @@ Account.first.identities #=>
 
 ## Base
 
-The `omniauth` feature builds on top of the `omniauth_base` feature, which sets up OmniAuth and routes its requests, but has no interaction with the database. So, if you would prefer to handle external logins differently, you can load just the `omniauth_base` feature, and implement your own callbacks.
+The `omniauth` feature builds on top of the `omniauth_base` feature, which sets up OmniAuth and routes its requests, but has no interaction with the database. So, if you would prefer to handle external logins differently, you can load just the `omniauth_base` feature, and implement your own callback phase.
 
 ```rb
 plugin :rodauth do
