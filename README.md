@@ -341,10 +341,10 @@ rodauth(:admin).omniauth_providers #=> [:google_oauth2, :twitter, :github]
 
 ### JSON
 
-JSON requests are supported for the request and callback phases. The request phase endpoint will return the authorize URL:
+JSON requests are supported for request and callback phases. The request phase endpoint will return the authorize URL:
 
 ```http
-POST /auth/facebook
+POST /auth/github
 Accept: application/json
 Content-Type: application/json
 ```
@@ -352,7 +352,21 @@ Content-Type: application/json
 200 OK
 Content-Type: application/json
 
-{ "authorize_url": "https://external.com/login" }
+{ "authorize_url": "https://github.com/login/oauth/authorize?..." }
+```
+
+When you redirect the user to the authorize URL, and they authorize the OAuth app, the callback endpoint they're redirected to will contain query parameters that need to passed for the callback request to the backend.
+
+```http
+GET /auth/github/callback?code=...&state=...
+Accept: application/json
+Content-Type: application/json
+```
+```http
+200 OK
+Content-Type: application/json
+
+{ "success": "You have been logged in" }
 ```
 
 If there was a login failure, the error type will be included in the response:
@@ -367,6 +381,14 @@ Content-Type: application/json
 Content-Type: application/json
 
 { "error_type": "some_error", "error": "There was an error logging in with the external provider" }
+```
+
+In this flow, you'll need to configure the callback URL on the OAuth app to point to the frontend app. On the OmniAuth strategy, you'll need to configure the same for GitHub requests, but keep the backend callback endpoint. For strategies based on [omniauth-oauth2], you can achieve this as follows:
+
+```rb
+omniauth_provider :github, ENV["GITHUB_CLIENT_ID"], ENV["GITHUB_CLIENT_SECRET"],
+  authorize_params: { redirect_uri: "https://frontend.example.com/github/callback" },
+  token_params: { redirect_uri: "https://frontend.example.com/github/callback" }
 ```
 
 You can change authorize URL and error type keys:
@@ -403,3 +425,4 @@ Everyone interacting in the rodauth-omniauth project's codebases, issue trackers
 [Rodauth]: https://github.com/jeremyevans/rodauth
 [OmniAuth]: https://github.com/omniauth/omniauth
 [rodauth-model]: https://github.com/janko/rodauth-model
+[omniauth-oauth2]: https://github.com/omniauth/omniauth-oauth2
