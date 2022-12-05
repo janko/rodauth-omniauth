@@ -355,7 +355,7 @@ Content-Type: application/json
 { "authorize_url": "https://github.com/login/oauth/authorize?..." }
 ```
 
-When you redirect the user to the authorize URL, and they authorize the OAuth app, the callback endpoint they're redirected to will contain query parameters that need to passed for the callback request to the backend.
+When you redirect the user to the authorize URL, and they authorize the OAuth app, the callback endpoint they're redirected to will contain query parameters that need to be included in the callback request to the backend.
 
 ```http
 GET /auth/github/callback?code=...&state=...
