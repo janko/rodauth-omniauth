@@ -13,6 +13,7 @@ require "sequel/core"
 require "roda"
 require "omniauth"
 require "bcrypt"
+require "rack/session/cookie"
 
 DB = Sequel.connect("#{"jdbc:" if RUBY_ENGINE == "jruby"}sqlite::memory")
 
@@ -55,7 +56,7 @@ class Minitest::HooksSpec
     when :plugin
       app.plugin :sessions, secret: SecureRandom.hex(32)
     when :rack
-      app.use Rack::Session::Cookie, secret: "0123456789"
+      app.use Rack::Session::Cookie, secret: SecureRandom.hex(32)
     end
     app.plugin :render, layout_opts: { path: "test/views/layout.str" }
 
