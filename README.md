@@ -369,13 +369,8 @@ Content-Type: application/json
 { "success": "You have been logged in" }
 ```
 
-If there was a login failure, the error type will be included in the response:
+If there was an OmniAuth failure, the error type will be included in the response:
 
-```http
-POST /auth/facebook/callback
-Accept: application/json
-Content-Type: application/json
-```
 ```http
 500 Internal Server Error
 Content-Type: application/json
