@@ -236,4 +236,20 @@ describe "Rodauth omniauth feature" do
     click_on "Confirm Password"
     assert_equal "password", page.html
   end
+
+  it "has translations" do
+    DB[:accounts].update(status_id: 1)
+
+    rodauth do
+      enable :omniauth, :i18n
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "The account matching the external identity is currently awaiting verification", page.find("#error_flash").text
+  end
 end

@@ -36,6 +36,8 @@ module Rodauth
       self.class.send(:define_method, :omniauth_app) { omniauth_app }
 
       self.class.roda_class.plugin :run_handler
+
+      i18n_register File.expand_path("#{__dir__}/../../../locales") if features.include?(:i18n)
     end
 
     def route!

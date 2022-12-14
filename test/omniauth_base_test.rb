@@ -475,4 +475,21 @@ describe "Rodauth omniauth_base feature" do
     visit "/auth/other"
     assert_equal 404, page.status_code
   end
+
+  it "has translations" do
+    rodauth do
+      enable :omniauth_base, :i18n
+      omniauth_provider :developer
+      omniauth_before_callback_phase do
+        omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
+      end
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "There was an error logging in with the external provider", page.find("#error_flash").text
+  end
 end
