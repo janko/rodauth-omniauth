@@ -191,8 +191,8 @@ The `omniauth` feature builds on top of the `omniauth_base` feature, which sets 
 plugin :rodauth do
   enable :omniauth_base
 
-  omniauth_provider :github, ENV["GITHUB_KEY"], ENV["GITHUB_SECRET"], scope: "user"
-  omniauth_provider :apple, ENV["CLIENT_ID"], { scope: "email name", ... }
+  omniauth_provider :github, ENV["GITHUB_CLIENT_ID"], ENV["GITHUB_CLIENT_SECRET"], scope: "user"
+  omniauth_provider :apple, ENV["APPLE_CLIENT_ID"], ENV["APPLE_CLIENT_SECRET"], scope: "email name"
 end
 
 route do |r|
