@@ -378,7 +378,7 @@ Content-Type: application/json
 { "error_type": "some_error", "error": "There was an error logging in with the external provider" }
 ```
 
-In this flow, you'll need to configure the callback URL on the OAuth app to point to the frontend app. On the OmniAuth strategy, you'll need to configure the same for GitHub requests, but keep the backend callback endpoint. For strategies based on [omniauth-oauth2], you can achieve this as follows:
+In this flow, you'll need to configure the callback URL on the OAuth app to point to the frontend app. In the OmniAuth strategy, you'll need to configure the same redirect URL for OAuth requests, but keep the backend callback endpoint. For strategies based on [omniauth-oauth2], you can achieve this as follows:
 
 ```rb
 omniauth_provider :github, ENV["GITHUB_CLIENT_ID"], ENV["GITHUB_CLIENT_SECRET"],
