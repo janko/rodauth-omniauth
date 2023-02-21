@@ -43,7 +43,7 @@ end
 Then enable the `omniauth` feature and register providers in your Rodauth configuration:
 
 ```sh
-$ bundle add omniauth-facebook omniauth-twitter, omniauth-google_oauth2
+$ bundle add omniauth-facebook omniauth-twitter, omniauth-google-oauth2
 ```
 ```rb
 plugin :rodauth do
@@ -54,6 +54,8 @@ plugin :rodauth do
   omniauth_provider :google_oauth2, ENV["GOOGLE_CLIENT_ID"], ENV["GOOGLE_CLIENT_SECRET"], name: :google
 end
 ```
+
+It is important to note that the `rodauth-omniauth` gem has an `OmniAuth 2.0` dependency, and as such, is only compatible with omniauth gems that use the same. 
 
 You can now add authentication links to your login form:
 
