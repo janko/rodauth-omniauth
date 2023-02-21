@@ -55,7 +55,7 @@ plugin :rodauth do
 end
 ```
 
-It is important to note that the `rodauth-omniauth` gem has an `OmniAuth 2.0` dependency, and as such, is only compatible with omniauth gems that use the same. 
+It is important to note that `rodauth-omniauth` requires OmniAuth 2.x, and as such, is only compatible with omniauth gems that use the same.
 
 You can now add authentication links to your login form:
 
