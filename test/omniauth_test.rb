@@ -256,22 +256,24 @@ describe "Rodauth omniauth feature" do
   it "defines model association" do
     rodauth do
       enable :omniauth
-      omniauth_provider :developer
+      omniauth_provider :developer, name: "developer1"
+      omniauth_provider :developer, name: "developer2"
     end
     roda do |r|
       r.rodauth
       r.root { view content: "" }
     end
 
-    omniauth_login "/auth/developer"
+    omniauth_login "/auth/developer1"
+    omniauth_login "/auth/developer2"
 
     account_model = Sequel::Model(:accounts)
     Object.const_set(:Account, account_model)
     account_model.include Rodauth::Model(app.rodauth)
-    identity = account_model.first.identities.first
 
-    assert_equal "developer", identity.provider
-    assert_equal "janko@hey.com", identity.uid
+    identities = account_model.first.identities_dataset.order(:id)
+
+    assert_equal ["developer1", "developer2"], identities.map(&:provider)
 
     Object.send(:remove_const, :Account)
   end
