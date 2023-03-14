@@ -29,4 +29,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "capybara"
   spec.add_development_dependency "jwt"
   spec.add_development_dependency "rodauth-i18n"
+  spec.add_development_dependency "rodauth-model"
 end

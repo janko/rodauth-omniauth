@@ -252,4 +252,27 @@ describe "Rodauth omniauth feature" do
     omniauth_login "/auth/developer"
     assert_equal "The account matching the external identity is currently awaiting verification", page.find("#error_flash").text
   end
+
+  it "defines model association" do
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+
+    omniauth_login "/auth/developer"
+
+    account_model = Sequel::Model(:accounts)
+    Object.const_set(:Account, account_model)
+    account_model.include Rodauth::Model(app.rodauth)
+    identity = account_model.first.identities.first
+
+    assert_equal "developer", identity.provider
+    assert_equal "janko@hey.com", identity.uid
+
+    Object.send(:remove_const, :Account)
+  end
 end

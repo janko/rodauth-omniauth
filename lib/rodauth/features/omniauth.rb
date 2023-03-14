@@ -203,7 +203,7 @@ module Rodauth
 end
 
 if defined?(Rodauth::Model)
-  Rodauth::Model.register_association(:identities) do
+  Rodauth::Model.register_association(:omniauth) do
     { name: :identities, type: :many, table: omniauth_identities_table, key: omniauth_identities_id_column }
   end
 end

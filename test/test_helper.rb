@@ -9,11 +9,12 @@ require "minitest/hooks/default"
 require "capybara/dsl"
 require "securerandom"
 
-require "sequel/core"
+require "sequel"
 require "roda"
 require "omniauth"
 require "bcrypt"
 require "rack/session/cookie"
+require "rodauth/model"
 
 DB = Sequel.connect("#{"jdbc:" if RUBY_ENGINE == "jruby"}sqlite::memory")
 
@@ -31,6 +32,8 @@ DB.create_table :account_identities do
   String :uid, null: false
   unique [:provider, :uid]
 end
+
+Sequel::Model.cache_anonymous_models = false
 
 OmniAuth.config.allowed_request_methods = %i[get post]
 OmniAuth.config.logger = Logger.new(nil)
