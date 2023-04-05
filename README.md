@@ -71,11 +71,18 @@ You can now add authentication links to your login form:
 Assuming you configured the providers correctly, you should now be able to authenticate via an external provider. The `omniauth` feature handles the callback request, automatically creating new identities and verified accounts from those identities as needed.
 
 ```rb
-DB[:accounts].all
-#=> [{ id: 123, status_id: 2, email: "user@example.com" }]
-DB[:account_identities].all
-#=> [{ id: 456, account_id: 123, provider: "facebook", uid: "984346198764" },
-#    { id: 789, account_id: 123, provider: "google", uid: "5871623487134"}]
+Account.all
+#=> [#<Account @values={ id: 123, status_id: 2, email: "user@example.com" }>]
+Account::Identity.all
+#=> [#<Account::Identity @values={ id: 456, account_id: 123, provider: "facebook", uid: "984346198764" }>,
+#    #<Account::Identity @values={ id: 789, account_id: 123, provider: "google", uid: "5871623487134"}>]
+```
+
+The example above assumes you're using [rodauth-model] (automatically setup with [rodauth-rails]), which will define `Account::Identity` model for the `account_identities` table, along with the `identities` association on the `Account` model.
+
+```rb
+account = Account.first
+account.identities #=> [#<Account::Identity ...>, ...]
 ```
 
 Currently, provider login is required to return the user's email address, and account creation is assumed not to require additional fields that need to be entered manually. There is currently also no built-in functionality for connecting/removing external identities when signed in. Both features are planned for future versions.
@@ -164,25 +171,6 @@ omniauth_identities_id_column :id
 omniauth_identities_account_id_column :account_id
 omniauth_identities_provider_column :provider
 omniauth_identities_uid_column :uid
-```
-
-### Model associations
-
-When using the [rodauth-model] gem, an `identities` one-to-many association will be defined on the account model:
-
-```rb
-require "rodauth/model"
-
-class Account < Sequel::Model
-  include Rodauth::Model(RodauthApp.rodauth)
-end
-```
-```rb
-Account.first.identities #=>
-# [
-#   #<Account::Identity id=123 provider="facebook" uid="987434628">,
-#   #<Account::Identity id=456 provider="google" uid="274673644">
-# ]
 ```
 
 ## Base
@@ -422,4 +410,5 @@ Everyone interacting in the rodauth-omniauth project's codebases, issue trackers
 [Rodauth]: https://github.com/jeremyevans/rodauth
 [OmniAuth]: https://github.com/omniauth/omniauth
 [rodauth-model]: https://github.com/janko/rodauth-model
+[rodauth-rails]: https://github.com/janko/rodauth-rails
 [omniauth-oauth2]: https://github.com/omniauth/omniauth-oauth2
