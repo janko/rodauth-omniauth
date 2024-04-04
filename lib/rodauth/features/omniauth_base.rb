@@ -171,7 +171,8 @@ module Rodauth
       yield
     ensure
       session.transform_keys!(&:to_sym) unless scope.opts[:sessions_convert_symbols]
-      request.env["rack.session"] = rack_session
+      request.env.delete("rack.session")
+      request.env["rack.session"] = rack_session if rack_session
     end
 
     # Makes the Rodauth instance accessible inside OmniAuth strategies

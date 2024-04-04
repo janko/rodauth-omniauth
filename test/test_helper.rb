@@ -101,3 +101,11 @@ class Minitest::HooksSpec
     Capybara.reset_sessions!
   end
 end
+
+class RedirectStrategy
+  include OmniAuth::Strategy
+
+  def request_phase
+    redirect "/external/auth"
+  end
+end

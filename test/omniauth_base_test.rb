@@ -344,16 +344,9 @@ describe "Rodauth omniauth_base feature" do
   end
 
   it "returns authorize URL when using JSON" do
-    redirect_strategy = Class.new do
-      include OmniAuth::Strategy
-      def request_phase
-        redirect "/external/auth"
-      end
-    end
-
     rodauth do
       enable :omniauth_base, :json
-      omniauth_provider redirect_strategy, name: "developer"
+      omniauth_provider RedirectStrategy, name: "developer"
       check_csrf? false
     end
     roda(json: true) do |r|
@@ -367,16 +360,9 @@ describe "Rodauth omniauth_base feature" do
   end
 
   it "returns error type when using JSON" do
-    redirect_strategy = Class.new do
-      include OmniAuth::Strategy
-      def request_phase
-        redirect "/external/auth"
-      end
-    end
-
     rodauth do
       enable :omniauth_base, :json
-      omniauth_provider redirect_strategy, name: "developer"
+      omniauth_provider RedirectStrategy, name: "developer"
       omniauth_before_callback_phase do
         omniauth_strategy.fail!(:some_error, KeyError.new("foo"))
       end
@@ -395,17 +381,10 @@ describe "Rodauth omniauth_base feature" do
 
   [:plugin, :rack].each do |sessions|
     it "stores OmniAuth data in JWT token when using #{sessions} sessions" do
-      redirect_strategy = Class.new do
-        include OmniAuth::Strategy
-        def request_phase
-          redirect "/external/auth"
-        end
-      end
-
       rodauth do
         enable :omniauth_base, :jwt
         jwt_secret "secret"
-        omniauth_provider redirect_strategy, name: "developer"
+        omniauth_provider RedirectStrategy, name: "developer"
         check_csrf? false
       end
       roda(json: true, sessions: sessions) do |r|
@@ -444,6 +423,32 @@ describe "Rodauth omniauth_base feature" do
 
     omniauth_login "/auth/developer?foo=bar"
     assert_equal '{"foo":"bar"}', page.html
+  end
+
+  it "allow default rack session in JWT mode" do
+    rodauth do
+      enable :omniauth_base, :jwt, :login
+      jwt_secret "secret"
+      omniauth_provider RedirectStrategy, name: "developer"
+    end
+    roda(json: true, sessions: false) do |r|
+      r.rodauth
+      r.post "auth/developer/callback" do
+        Rack::Request.new(env).session.inspect
+      end
+    end
+
+    page.driver.get "/auth/developer", {}, { "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json" }
+
+    jwt_token = page.response_headers["Authorization"]
+
+    page.driver.post "/auth/developer/callback", {}, {
+      "CONTENT_TYPE" => "application/json",
+      "HTTP_ACCEPT" => "application/json",
+      "HTTP_AUTHORIZATION" => jwt_token,
+    }
+
+    assert_equal "{}", page.html
   end
 
   it "inherits omniauth providers on subclassing" do
