@@ -20,6 +20,10 @@ module Rodauth
     auth_value_method :omniauth_identities_provider_column, :provider
     auth_value_method :omniauth_identities_uid_column, :uid
 
+    auth_value_methods(
+      :omniauth_verify_account?,
+    )
+
     auth_methods(
       :create_omniauth_identity,
       :omniauth_identity_insert_hash,
@@ -62,9 +66,13 @@ module Rodauth
       end
 
       if account && !open_account?
-        set_response_error_reason_status(:unverified_account, unopen_account_error_status)
-        set_redirect_error_flash omniauth_login_unverified_account_error_flash
-        redirect omniauth_login_failure_redirect
+        if omniauth_verify_account?
+          omniauth_verify_account
+        else
+          set_response_error_reason_status(:unverified_account, unopen_account_error_status)
+          set_redirect_error_flash omniauth_login_unverified_account_error_flash
+          redirect omniauth_login_failure_redirect
+        end
       end
 
       transaction do
@@ -132,6 +140,17 @@ module Rodauth
     end
 
     attr_reader :omniauth_identity
+
+    def omniauth_verify_account?
+      features.include?(:verify_account) && account[login_column] == omniauth_email
+    end
+
+    def omniauth_verify_account
+      transaction do
+        verify_account
+        remove_verify_account_key
+      end
+    end
 
     def _omniauth_new_account(login)
       acc = { login_column => login }

@@ -66,7 +66,35 @@ describe "Rodauth omniauth feature" do
     assert_equal 1, DB[:accounts].count
   end
 
-  it "doesn't log in unverified accounts" do
+  it "verifies unverified accounts by default" do
+    DB[:accounts].delete
+
+    rodauth do
+      enable :omniauth, :verify_account
+      omniauth_provider :developer
+      create_account_set_password? true
+      create_account_autologin? false
+    end
+    roda do |r|
+      r.rodauth
+      r.root do
+        view content: "Verified: #{rodauth.account! && rodauth.open_account?}"
+      end
+    end
+
+    visit "/create-account"
+    fill_in "Login", with: "janko@hey.com"
+    fill_in "Password", with: "secret"
+    fill_in "Confirm Password", with: "secret"
+    click_on "Create Account"
+    assert_equal "An email has been sent to you with a link to verify your account", page.find("#notice_flash").text
+
+    omniauth_login "/auth/developer"
+    assert_equal "You have been logged in", page.find("#notice_flash").text
+    assert_includes page.html, "Verified: true"
+  end
+
+  it "rejects unverified accounts if verify_account feature is not loaded" do
     DB[:accounts].update(status_id: 1)
 
     rodauth do

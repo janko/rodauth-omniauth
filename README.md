@@ -107,7 +107,17 @@ end
 account_from_omniauth {} # disable finding existing accounts for new identities
 ```
 
-If the account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the callback phase will return an error response, as only verified accounts can be logged into. You can change the default error flash and redirect location in this case:
+#### Account verification
+
+If the account associated to the external identity exists and is unverified (e.g. it was created through normal registration), the callback phase will automatically verify the account and login, assuming the `verify_account` feature is enabled and external email is the same.
+
+If you wish to disallow OmniAuth login into unverified accounts, set the following:
+
+```rb
+omniauth_verify_account? false
+```
+
+You can change the default error flash and redirect location in this case:
 
 ```rb
 omniauth_login_unverified_account_error_flash "The account matching the external identity is currently awaiting verification"

@@ -15,6 +15,9 @@ require "omniauth"
 require "bcrypt"
 require "rack/session/cookie"
 require "rodauth/model"
+require "mail"
+
+Mail.defaults { delivery_method :test }
 
 DB = Sequel.connect("#{"jdbc:" if RUBY_ENGINE == "jruby"}sqlite::memory")
 
@@ -31,6 +34,13 @@ DB.create_table :account_identities do
   String :provider, null: false
   String :uid, null: false
   unique [:provider, :uid]
+end
+
+DB.create_table :account_verification_keys do
+  foreign_key :id, :accounts, primary_key: true
+  String :key, null: false
+  DateTime :requested_at, null: false, default: Sequel::CURRENT_TIMESTAMP
+  DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
 end
 
 Sequel::Model.cache_anonymous_models = false
