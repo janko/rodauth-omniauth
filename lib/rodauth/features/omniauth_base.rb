@@ -66,19 +66,19 @@ module Rodauth
 
     %w[email name].each do |info_key|
       define_method(:"omniauth_#{info_key}") do
-        omniauth_info[info_key]
+        omniauth_info[info_key] if omniauth_info
       end
     end
 
     %w[provider uid info credentials extra].each do |auth_key|
       define_method(:"omniauth_#{auth_key}") do
-        omniauth_auth.fetch(auth_key)
+        omniauth_auth[auth_key] if omniauth_auth
       end
     end
 
     %w[auth params strategy origin error error_type error_strategy].each do |data|
       define_method(:"omniauth_#{data}") do
-        request.env.fetch("omniauth.#{data.tr("_", ".")}")
+        request.env["omniauth.#{data.tr("_", ".")}"]
       end
     end
 
