@@ -135,6 +135,23 @@ describe "Rodauth omniauth feature" do
     assert_equal '{"name":"New Name","email":"janko@hey.com"}', DB[:account_identities].first[:info]
   end
 
+  it "gracefully handles GET on request phase when GET is not allowed" do
+    OmniAuth.config.allowed_request_methods = %i[post]
+
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+    end
+
+    visit "/auth/developer"
+    assert_equal 404, page.status_code
+
+    OmniAuth.config.allowed_request_methods = %i[get post]
+  end
+
   it "deletes omniauth identities when account is closed" do
     rodauth do
       enable :omniauth, :close_account

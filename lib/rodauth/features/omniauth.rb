@@ -42,7 +42,7 @@ module Rodauth
 
     def route_omniauth!
       result = super
-      handle_omniauth_callback if omniauth_request?
+      handle_omniauth_callback if omniauth_strategy&.on_callback_path?
       result
     end
 

@@ -194,10 +194,6 @@ module Rodauth
       end
     end
 
-    def omniauth_request?
-      request.env.key?("omniauth.strategy")
-    end
-
     def self.included(auth)
       auth.extend ClassMethods
       auth.instance_variable_set(:@omniauth_providers, [])
