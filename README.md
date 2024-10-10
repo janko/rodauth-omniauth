@@ -148,6 +148,12 @@ rodauth.omniauth_request_path(:google, action: "login") #=> "/auth/github?action
 omniauth_create_account? { omniauth_params["action"] != "login" }
 ```
 
+You can change the default error message for when existing account wasn't found in case automatic account creation is disabled:
+
+```rb
+omniauth_login_no_matching_account_error_flash "No existing account found"
+```
+
 ### Identity data
 
 You can also store extra data on the external identities. For example, we could override the update hash to store `info`, `credentials`, and `extra` data from the auth hash into separate columns:
