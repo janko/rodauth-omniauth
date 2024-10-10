@@ -55,7 +55,8 @@ plugin :rodauth do
 end
 ```
 
-It is important to note that `rodauth-omniauth` requires OmniAuth 2.x, and as such, is only compatible with omniauth gems that use the same.
+> [!NOTE]
+> It is important to note that `rodauth-omniauth` requires OmniAuth 2.x, so it's only compatible with providers gems that support it.
 
 You can now add authentication links to your login form:
 
@@ -126,7 +127,7 @@ omniauth_login_failure_redirect { require_login_redirect }
 
 ### Account creation
 
-Accounts created via external login are automatically verified, because it's assumed your email address was verified by the external provider. If you want to use extra user information for account creation, you can do so via hooks:
+Accounts created via external login are automatically verified, because it's assumed your email address was verified by the external provider. If you want to add extra user information to created accounts, you can do so via hooks:
 
 ```rb
 before_omniauth_create_account { account[:name] = omniauth_name }
@@ -136,7 +137,16 @@ after_omniauth_create_account do
 end
 ```
 
-When the account is closed, its external identities are automatically deleted from the database.
+You might want to disable automatic account creation in certain cases. For example, if you're showing OmniAuth login links on both login and registration pages, you might want OmniAuth login on the login page to only log into existing accounts. You could configure this so that it's controlled via a query parameter:
+
+```rb
+# somewhere in your view template:
+rodauth.omniauth_request_path(:google, action: "login") #=> "/auth/github?action=login"
+```
+```rb
+# in your Rodauth configuration:
+omniauth_create_account? { omniauth_params["action"] != "login" }
+```
 
 ### Identity data
 
