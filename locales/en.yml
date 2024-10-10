@@ -2,3 +2,4 @@ en:
   rodauth:
     omniauth_failure_error_flash: There was an error logging in with the external provider
     omniauth_login_unverified_account_error_flash: The account matching the external identity is currently awaiting verification
+    omniauth_login_no_matching_account_error_flash: There is no existing account matching the external identity

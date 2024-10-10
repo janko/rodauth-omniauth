@@ -11,6 +11,7 @@ module Rodauth
     after :omniauth_create_account
 
     error_flash "The account matching the external identity is currently awaiting verification", :omniauth_login_unverified_account
+    error_flash "There is no existing account matching the external identity", :omniauth_login_no_matching_account
 
     redirect(:omniauth_login_failure) { require_login_redirect }
 
@@ -22,6 +23,7 @@ module Rodauth
 
     auth_value_methods(
       :omniauth_verify_account?,
+      :omniauth_create_account?,
     )
 
     auth_methods(
@@ -76,11 +78,16 @@ module Rodauth
       end
 
       transaction do
-        unless account
-          omniauth_new_account
-          before_omniauth_create_account
-          omniauth_save_account
-          after_omniauth_create_account
+        if !account
+          if omniauth_create_account?
+            omniauth_new_account
+            before_omniauth_create_account
+            omniauth_save_account
+            after_omniauth_create_account
+          else
+            set_redirect_error_flash omniauth_login_no_matching_account_error_flash
+            redirect omniauth_login_failure_redirect
+          end
         end
 
         if omniauth_identity
@@ -150,6 +157,10 @@ module Rodauth
         verify_account
         remove_verify_account_key
       end
+    end
+
+    def omniauth_create_account?
+      true
     end
 
     def _omniauth_new_account(login)

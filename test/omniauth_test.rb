@@ -32,6 +32,20 @@ describe "Rodauth omniauth feature" do
     assert_equal account[:id], identity[:account_id]
   end
 
+  it "allows preventing new account creation" do
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+      omniauth_create_account? false
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+    omniauth_login "/auth/developer", email: "janko@other.com"
+    assert_equal "There is no existing account matching the external identity", page.find("#error_flash").text
+  end
+
   it "logs in account already connected to an external identity" do
     DB[:account_identities].insert(account_id: 1, provider: "developer", uid: "janko@other.com")
     DB[:accounts].insert(email: "janko@other.com", status_id: 2)
