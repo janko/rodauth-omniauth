@@ -78,6 +78,7 @@ class Minitest::HooksSpec
       instance_exec(&rodauth_block)
       account_password_hash_column :password_hash
       skip_status_checks? false
+      set_deadline_values? true
     end
     app.route(&block)
 

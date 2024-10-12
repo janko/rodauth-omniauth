@@ -208,22 +208,9 @@ describe "Rodauth omniauth feature" do
     assert_equal "omniauth", page.html
   end
 
-  it "works correctly with #two_factor_authentication_setup? without password" do
-    DB.create_table :account_recovery_codes do
-      foreign_key :id, :accounts
-      String :code
-      primary_key [:id, :code]
-    end
-
-    DB.create_table :account_email_auth_keys do
-      foreign_key :id, :accounts, primary_key: true, type: :Bignum
-      String :key, null: false
-      DateTime :deadline, null: false
-      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
-    end
-
+  it "isn't considered 2FA when a password is set" do
     rodauth do
-      enable :omniauth, :recovery_codes, :email_auth
+      enable :omniauth, :two_factor_base
       omniauth_provider :developer
     end
     roda do |r|
@@ -233,14 +220,57 @@ describe "Rodauth omniauth feature" do
 
     omniauth_login "/auth/developer"
     assert_equal "MFA setup: false", page.html
+  end
 
+  it "isn't considered 2FA when email auth is enabled" do
+    DB.create_table :account_email_auth_keys do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
     DB[:accounts].update(password_hash: nil)
-    visit "/"
-    assert_equal "MFA setup: false", page.html
 
-    DB[:account_recovery_codes].insert(id: 1, code: "code")
-    visit "/"
-    assert_equal "MFA setup: true", page.html
+    rodauth do
+      enable :omniauth, :email_auth, :two_factor_base
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      r.root { "MFA setup: #{rodauth.two_factor_authentication_setup?}" }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "MFA setup: false", page.html
+  end
+
+  it "still offers email auth on login when OmniAuth identity exists" do
+    DB.create_table :account_email_auth_keys do
+      foreign_key :id, :accounts, primary_key: true, type: :Bignum
+      String :key, null: false
+      DateTime :deadline, null: false
+      DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
+    end
+
+    rodauth do
+      enable :omniauth, :email_auth, :login, :logout
+      omniauth_provider :developer
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: "" }
+    end
+
+    omniauth_login "/auth/developer", email: "janko@hey.com"
+    logout
+
+    visit "/login"
+    fill_in "Login", with: "janko@hey.com"
+    click_on "Login"
+    assert_equal "Login recognized, please enter your password", find("#notice_flash").text
+
+    click_on "Send Login Link Via Email"
+    assert_equal "An email has been sent to you with a link to login to your account", find("#notice_flash").text
   end
 
   it "allows modifying created account" do

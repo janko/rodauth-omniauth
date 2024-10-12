@@ -126,7 +126,7 @@ module Rodauth
 
     def possible_authentication_methods
       methods = super
-      methods << "omniauth" unless methods.include?("password") || omniauth_account_identities_ds.empty?
+      methods << "omniauth" unless methods.include?("password") || (features.include?(:email_auth) && allow_email_auth?) || omniauth_account_identities_ds.empty?
       methods
     end
 
@@ -140,10 +140,6 @@ module Rodauth
     def after_close_account
       super if defined?(super)
       remove_omniauth_identities
-    end
-
-    def allow_email_auth?
-      (defined?(super) ? super : true) && omniauth_account_identities_ds.empty?
     end
 
     attr_reader :omniauth_identity
