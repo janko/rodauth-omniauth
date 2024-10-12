@@ -208,6 +208,16 @@ omniauth_identities_provider_column :provider
 omniauth_identities_uid_column :uid
 ```
 
+### Audit logging
+
+If you're using the `audit_logging` feature, it can be useful to include the external provider name in the `login` audit logs:
+
+```rb
+audit_log_metadata_for :login do
+  { "provider" => omniauth_provider } if authenticated_by.include?("omniauth")
+end
+```
+
 ## Base
 
 The `omniauth` feature builds on top of the `omniauth_base` feature, which sets up OmniAuth and routes its requests, but has no interaction with the database. So, if you would prefer to handle external logins differently, you can load just the `omniauth_base` feature, and implement your own callback phase.
