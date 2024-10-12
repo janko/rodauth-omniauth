@@ -88,6 +88,15 @@ account.identities #=> [#<Account::Identity ...>, ...]
 
 Currently, provider login is required to return the user's email address, and account creation is assumed not to require additional fields that need to be entered manually. There is currently also no built-in functionality for connecting/removing external identities when signed in. Both features are planned for future versions.
 
+### Timestamps
+
+If you'll be adding created/updated timestamps to the identities table, also add these lines to your Rodauth configuration:
+
+```rb
+omniauth_identity_insert_hash { super().merge(created_at: Time.now) }
+omniauth_identity_update_hash { { updated_at: Time.now } }
+```
+
 ### Login
 
 After provider login, you can perform custom logic at the start of the callback request:
