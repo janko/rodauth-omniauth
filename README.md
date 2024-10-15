@@ -46,13 +46,12 @@ Then enable the `omniauth` feature and register providers in your Rodauth config
 $ bundle add omniauth-facebook omniauth-twitter, omniauth-google-oauth2
 ```
 ```rb
-plugin :rodauth do
-  enable :omniauth
+# in your Rodauth configuration
+enable :omniauth
 
-  omniauth_provider :facebook, ENV["FACEBOOK_APP_ID"], ENV["FACEBOOK_APP_SECRET"], scope: "email"
-  omniauth_provider :twitter, ENV["TWITTER_API_KEY"], ENV["TWITTER_API_SECRET"]
-  omniauth_provider :google_oauth2, ENV["GOOGLE_CLIENT_ID"], ENV["GOOGLE_CLIENT_SECRET"], name: :google
-end
+omniauth_provider :facebook, ENV["FACEBOOK_APP_ID"], ENV["FACEBOOK_APP_SECRET"], scope: "email"
+omniauth_provider :twitter, ENV["TWITTER_API_KEY"], ENV["TWITTER_API_SECRET"]
+omniauth_provider :google_oauth2, ENV["GOOGLE_CLIENT_ID"], ENV["GOOGLE_CLIENT_SECRET"], name: :google
 ```
 
 > [!NOTE]
@@ -223,18 +222,20 @@ end
 The `omniauth` feature builds on top of the `omniauth_base` feature, which sets up OmniAuth and routes its requests, but has no interaction with the database. So, if you would prefer to handle external logins differently, you can load just the `omniauth_base` feature, and implement your own callback phase.
 
 ```rb
-plugin :rodauth do
-  enable :omniauth_base
+# in your Rodauth configuration
+enable :omniauth_base
 
-  omniauth_provider :github, ENV["GITHUB_CLIENT_ID"], ENV["GITHUB_CLIENT_SECRET"], scope: "user"
-  omniauth_provider :apple, ENV["APPLE_CLIENT_ID"], ENV["APPLE_CLIENT_SECRET"], scope: "email name"
-end
-
-route do |r|
-  r.rodauth # routes Rodauth and OmniAuth requests
-
-  r.get "auth", String, "callback" do
-    # ... handle callback request ...
+omniauth_provider :github, ENV["GITHUB_CLIENT_ID"], ENV["GITHUB_CLIENT_SECRET"], scope: "user"
+omniauth_provider :apple, ENV["APPLE_CLIENT_ID"], ENV["APPLE_CLIENT_SECRET"], scope: "email name"
+```
+```rb
+# in your routes
+get "/auth/:provider/callback", to: "rodauth#omniauth_login"
+```
+```rb
+class RodauthController < ApplicationController
+  def omniauth_login
+    # ...
   end
 end
 ```
@@ -347,26 +348,18 @@ class RodauthBase < Rodauth::Auth
     omniauth_provider :google_oauth2, ...
   end
 end
-```
-```rb
+
 class RodauthMain < RodauthBase
   configure do
     omniauth_provider :facebook, ...
   end
 end
-```
-```rb
+
 class RodauthAdmin < RodauthBase
   configure do
     omniauth_provider :twitter, ...
     omniauth_provider :github, ...
   end
-end
-```
-```rb
-class RodauthApp < Roda
-  plugin :rodauth, auth_class: RodauthMain
-  plugin :rodauth, auth_class: RodauthAdmin, name: :admin
 end
 ```
 ```rb
