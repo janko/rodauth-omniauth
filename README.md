@@ -397,6 +397,9 @@ Content-Type: application/json
 { "success": "You have been logged in" }
 ```
 
+> [!NOTE]
+> Unless you're using JWT, make sure you're persisting cookies across requests, as most OmniAuth strategies rely on session storage.
+
 If there was an OmniAuth failure, the error type will be included in the response:
 
 ```http
