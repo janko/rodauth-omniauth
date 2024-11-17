@@ -10,6 +10,10 @@ Add the gem to your project:
 $ bundle add rodauth-omniauth
 ```
 
+> [!NOTE]
+> The request validation phase will call Rodauth's CSRF protection, so there is no need for gems like `omniauth-rails_csrf_protection`.
+
+
 ## Usage
 
 You'll first need to create the table for storing external identities:
@@ -332,10 +336,6 @@ omniauth_on_failure do
   end
 end
 ```
-
-#### CSRF protection
-
-The default request validation phase uses Rodauth's configured CSRF protection, so there is no need for external gems such as `omniauth-rails_csrf_protection`.
 
 ### Inheritance
 
