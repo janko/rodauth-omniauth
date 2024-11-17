@@ -11,7 +11,7 @@ $ bundle add rodauth-omniauth
 ```
 
 > [!NOTE]
-> The request validation phase will call Rodauth's CSRF protection, so there is no need for gems like `omniauth-rails_csrf_protection`.
+> Rodauth's CSRF protection will be used for the request validation phase, so there is no need for gems like `omniauth-rails_csrf_protection`.
 
 
 ## Usage
