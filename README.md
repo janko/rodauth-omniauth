@@ -58,8 +58,8 @@ omniauth_provider :twitter, ENV["TWITTER_API_KEY"], ENV["TWITTER_API_SECRET"]
 omniauth_provider :google_oauth2, ENV["GOOGLE_CLIENT_ID"], ENV["GOOGLE_CLIENT_SECRET"], name: :google
 ```
 
-> [!NOTE]
-> It is important to note that `rodauth-omniauth` requires OmniAuth 2.x, so it's only compatible with providers gems that support it.
+> [!WARNING]
+> The `rodauth-omniauth` gem requires OmniAuth 2.x, so it's only compatible with providers gems that support it.
 
 You can now add authentication links to your login form:
 
