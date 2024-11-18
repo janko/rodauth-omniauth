@@ -93,7 +93,16 @@ Currently, provider login is required to return the user's email address, and ac
 
 ### Timestamps
 
-If you'll be adding created/updated timestamps to the identities table, also add these lines to your Rodauth configuration:
+If you want to know when an external identity was used first or last, you may want to add timestamp columns to the identities table:
+
+```rb
+create_table :account_identities do |t|
+  # ...
+  t.timestamps
+end
+```
+
+In that case, you'll need to make sure the column values are populated on create/update:
 
 ```rb
 omniauth_identity_insert_hash { super().merge(created_at: Time.now) }
