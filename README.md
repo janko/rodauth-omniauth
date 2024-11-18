@@ -213,7 +213,7 @@ omniauth_identities_uid_column :uid
 
 ### Audit logging
 
-If you're using the `audit_logging` feature, it can be useful to include the external provider name in the `login` audit logs:
+If you're using the [audit_logging] feature, it can be useful to include the external provider name in the `login` audit logs:
 
 ```rb
 enable :audit_logging
@@ -455,3 +455,4 @@ Everyone interacting in the rodauth-omniauth project's codebases, issue trackers
 [rodauth-model]: https://github.com/janko/rodauth-model
 [rodauth-rails]: https://github.com/janko/rodauth-rails
 [omniauth-oauth2]: https://github.com/omniauth/omniauth-oauth2
+[audit_logging]: https://rodauth.jeremyevans.net/rdoc/files/doc/audit_logging_rdoc.html
