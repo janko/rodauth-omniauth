@@ -216,6 +216,8 @@ omniauth_identities_uid_column :uid
 If you're using the `audit_logging` feature, it can be useful to include the external provider name in the `login` audit logs:
 
 ```rb
+enable :audit_logging
+
 audit_log_metadata_for :login do
   { "provider" => omniauth_provider } if authenticated_by.include?("omniauth")
 end
