@@ -205,7 +205,7 @@ module Rodauth
     end
 
     def _account_from_omniauth_identity
-      account_ds(omniauth_identity_account_id).first
+      _account_from_id(omniauth_identity_account_id)
     end
 
     def omniauth_identity_id
