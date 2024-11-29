@@ -273,6 +273,23 @@ describe "Rodauth omniauth feature" do
     assert_equal "An email has been sent to you with a link to login to your account", find("#notice_flash").text
   end
 
+  it "allows counting as two factors" do
+    DB[:account_recovery_codes].insert(id: DB[:accounts].get(:id), code: "111111")
+
+    rodauth do
+      enable :omniauth, :recovery_codes
+      omniauth_provider :developer
+      omniauth_two_factors? true
+    end
+    roda do |r|
+      r.rodauth
+      r.root { "two factor authenticated: #{rodauth.two_factor_authenticated?}" }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "two factor authenticated: true", page.html
+  end
+
   it "allows modifying created account" do
     DB.add_column :accounts, :name, String
 

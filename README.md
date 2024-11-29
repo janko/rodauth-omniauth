@@ -175,6 +175,25 @@ You can change the default error message for when existing account wasn't found 
 omniauth_login_no_matching_account_error_flash "No existing account found"
 ```
 
+### Multifactor authentication
+
+By default, OmniAuth login will count only as one factor. So, if the user has multifactor authentication enabled, they will be asked to authenticate with 2nd factor when required.
+
+If you're using OmniAuth login for SSO and want to rely on 2FA policies set on the external provider, you can have OmniAuth login count as two factors:
+
+```rb
+omniauth_two_factors? true
+```
+
+You can also make it conditional based on data from the external provider:
+
+```rb
+omniauth_two_factors? do
+  # only count as two factors if external account uses 2FA
+  omniauth_extra["raw_info"]["two_factor_authentication"]
+end
+```
+
 ### Identity data
 
 You can also store extra data on the external identities. For example, we could override the update hash to store `info`, `credentials`, and `extra` data from the auth hash into separate columns:

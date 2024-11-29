@@ -43,6 +43,12 @@ DB.create_table :account_verification_keys do
   DateTime :email_last_sent, null: false, default: Sequel::CURRENT_TIMESTAMP
 end
 
+DB.create_table :account_recovery_codes do
+  foreign_key :id, :accounts
+  String :code
+  primary_key [:id, :code]
+end
+
 Sequel::Model.cache_anonymous_models = false
 
 OmniAuth.config.allowed_request_methods = %i[get post]

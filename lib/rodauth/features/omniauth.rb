@@ -20,6 +20,7 @@ module Rodauth
     auth_value_method :omniauth_identities_account_id_column, :account_id
     auth_value_method :omniauth_identities_provider_column, :provider
     auth_value_method :omniauth_identities_uid_column, :uid
+    auth_value_method :omniauth_two_factors?, false
 
     auth_value_methods(
       :omniauth_verify_account?,
@@ -97,7 +98,9 @@ module Rodauth
         end
       end
 
-      login("omniauth")
+      login("omniauth") do
+        two_factor_update_session("omniauth-two") if omniauth_second_factor?
+      end
     end
 
     def retrieve_omniauth_identity
@@ -143,6 +146,10 @@ module Rodauth
     end
 
     attr_reader :omniauth_identity
+
+    def omniauth_second_factor?
+      features.include?(:two_factor_base) && uses_two_factor_authentication? && omniauth_two_factors?
+    end
 
     def omniauth_verify_account?
       features.include?(:verify_account) && account[login_column] == omniauth_email
