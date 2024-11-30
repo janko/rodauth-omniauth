@@ -96,18 +96,18 @@ Currently, provider login is required to return the user's email address, and ac
 ### Auth Value Methods
 
 | Method | Description |
-| -----  | ----------- |
+| :----  | :---------- |
 | `omniauth_verify_account?` | Automatically verify unverified accounts on login (defaults to true). |
 | `omniauth_login_unverified_account_error_flash` | Flash message for when existing account is unverified and automatic verification is disabled. |
 | `omniauth_login_failure_redirect` | Redirect location for when OmniAuth login failed. |
 | `omniauth_create_account?` | Automatically create account for new email address on OmniAuth login (defaults to true). |
 | `omniauth_login_no_matching_account_error_flash` | Flash message for when no existing account was found and automatic creation is disabled. |
 | `omniauth_two_factors?` | Teat OmniAuth login as two factors when using MFA (defaults to false). |
-| `omniauth_identities_table` | Table name for external identities (defaults to `:account_identities`). |
-| `omniauth_identities_id_column` | Primary key column for identities table (defaults to `:id`). |
-| `omniauth_identities_account_id_column` | Foreign key column for identities table (defaults to `:account_id`). |
-| `omniauth_identities_provider_column | Provider column for identities table (defaults to `:provider`). |
-| `omniauth_identities_uid_column | UID column for identities table (defaults to `:uid`). |
+| `omniauth_identities_table` | Table name for external identities (defaults to `account_identities`). |
+| `omniauth_identities_id_column` | Primary key column for identities table (defaults to `id`). |
+| `omniauth_identities_account_id_column` | Foreign key column for identities table (defaults to `account_id`). |
+| `omniauth_identities_provider_column` | Provider column for identities table (defaults to `provider`). |
+| `omniauth_identities_uid_column` | UID column for identities table (defaults to `uid`). |
 | `omniauth_prefix` | Path prefix to use for OmniAuth routes (defaults to `/auth`). |
 | `omniauth_failure_error_flash` | Flash message for failed OmniAuth login. |
 | `omniauth_failure_redirect` | Redirect location for failed OmniAuth login. |
@@ -118,7 +118,7 @@ Currently, provider login is required to return the user's email address, and ac
 ### Auth Methods
 
 | Method | Description |
-| -----  | ----------- |
+| :----  | :---------- |
 | `account_from_omniauth` | Find an existing account from OmniAuth login data (by default matches by email). |
 | `before_omniauth_callback_route` | Run arbitrary code before handling the callback route. |
 | `omniauth_identity_insert_hash` | Hash of column values used for creating a new identity on login. |
@@ -126,7 +126,7 @@ Currently, provider login is required to return the user's email address, and ac
 | `before_omniauth_create_account` | Any actions to take before creating a new account on OmniAuth login. |
 | `after_omniauth_create_account` | Any actions to take after creating a new account on OmniAuth login. |
 | `omniauth_setup` | Hook for OmniAuth setup phase |
-| `omniauth_request_validation_phase` | Hook for OmniAuth request validation phase (defaults to CSRF protection.) |
+| `omniauth_request_validation_phase` | Hook for OmniAuth request validation phase (defaults to CSRF protection). |
 | `omniauth_before_request_phase` | Hook for OmniAuth before request phase. |
 | `omniauth_before_callback_phase` | Hook for OmniAuth  before callback phase. |
 | `omniauth_on_failure` | Hook for OmniAuth login failure. |
