@@ -102,7 +102,7 @@ Currently, provider login is required to return the user's email address, and ac
 | `omniauth_login_failure_redirect` | Redirect location for when OmniAuth login failed. |
 | `omniauth_create_account?` | Automatically create account for new email address on OmniAuth login (defaults to true). |
 | `omniauth_login_no_matching_account_error_flash` | Flash message for when no existing account was found and automatic creation is disabled. |
-| `omniauth_two_factors?` | Teat OmniAuth login as two factors when using MFA (defaults to false). |
+| `omniauth_two_factors?` | Treat OmniAuth login as two factors when using MFA (defaults to false). |
 | `omniauth_identities_table` | Table name for external identities (defaults to `account_identities`). |
 | `omniauth_identities_id_column` | Primary key column for identities table (defaults to `id`). |
 | `omniauth_identities_account_id_column` | Foreign key column for identities table (defaults to `account_id`). |
