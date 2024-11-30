@@ -14,7 +14,7 @@ $ bundle add rodauth-omniauth
 > Rodauth's CSRF protection will be used for the request validation phase, so there is no need for gems like `omniauth-rails_csrf_protection`.
 
 
-## Usage
+## Getting started
 
 You'll first need to create the table for storing external identities:
 
@@ -90,6 +90,48 @@ account.identities #=> [#<Account::Identity ...>, ...]
 ```
 
 Currently, provider login is required to return the user's email address, and account creation is assumed not to require additional fields that need to be entered manually. There is currently also no built-in functionality for connecting/removing external identities when signed in. Both features are planned for future versions.
+
+## Reference
+
+### Auth Value Methods
+
+| Method | Description |
+| -----  | ----------- |
+| `omniauth_verify_account?` | Automatically verify unverified accounts on login (defaults to true). |
+| `omniauth_login_unverified_account_error_flash` | Flash message for when existing account is unverified and automatic verification is disabled. |
+| `omniauth_login_failure_redirect` | Redirect location for when OmniAuth login failed. |
+| `omniauth_create_account?` | Automatically create account for new email address on OmniAuth login (defaults to true). |
+| `omniauth_login_no_matching_account_error_flash` | Flash message for when no existing account was found and automatic creation is disabled. |
+| `omniauth_two_factors?` | Teat OmniAuth login as two factors when using MFA (defaults to false). |
+| `omniauth_identities_table` | Table name for external identities (defaults to `:account_identities`). |
+| `omniauth_identities_id_column` | Primary key column for identities table (defaults to `:id`). |
+| `omniauth_identities_account_id_column` | Foreign key column for identities table (defaults to `:account_id`). |
+| `omniauth_identities_provider_column | Provider column for identities table (defaults to `:provider`). |
+| `omniauth_identities_uid_column | UID column for identities table (defaults to `:uid`). |
+| `omniauth_prefix` | Path prefix to use for OmniAuth routes (defaults to `/auth`). |
+| `omniauth_failure_error_flash` | Flash message for failed OmniAuth login. |
+| `omniauth_failure_redirect` | Redirect location for failed OmniAuth login. |
+| `omniauth_failure_error_status` | Response status for failed OmniAuth login (defaults to 500). |
+| `omniauth_authorize_url_key` | Field name for authorization URL in JSON mode. |
+| `omniauth_error_type_key` | Field name for error type in JSON mode. |
+
+### Auth Methods
+
+| Method | Description |
+| -----  | ----------- |
+| `account_from_omniauth` | Find an existing account from OmniAuth login data (by default matches by email). |
+| `before_omniauth_callback_route` | Run arbitrary code before handling the callback route. |
+| `omniauth_identity_insert_hash` | Hash of column values used for creating a new identity on login. |
+| `omniauth_identity_update_hash` | Hash of column values used fro updating existing identities on login. |
+| `before_omniauth_create_account` | Any actions to take before creating a new account on OmniAuth login. |
+| `after_omniauth_create_account` | Any actions to take after creating a new account on OmniAuth login. |
+| `omniauth_setup` | Hook for OmniAuth setup phase |
+| `omniauth_request_validation_phase` | Hook for OmniAuth request validation phase (defaults to CSRF protection.) |
+| `omniauth_before_request_phase` | Hook for OmniAuth before request phase. |
+| `omniauth_before_callback_phase` | Hook for OmniAuth  before callback phase. |
+| `omniauth_on_failure` | Hook for OmniAuth login failure. |
+
+## Customizing
 
 ### Timestamps
 
