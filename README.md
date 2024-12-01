@@ -91,7 +91,7 @@ account.identities #=> [#<Account::Identity ...>, ...]
 
 Currently, provider login is required to return the user's email address, and account creation is assumed not to require additional fields that need to be entered manually. There is currently also no built-in functionality for connecting/removing external identities when signed in. Both features are planned for future versions.
 
-## Reference
+## Configuration reference
 
 ### Auth Value Methods
 
