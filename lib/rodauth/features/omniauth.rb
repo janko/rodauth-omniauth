@@ -81,10 +81,7 @@ module Rodauth
       transaction do
         if !account
           if omniauth_create_account?
-            omniauth_new_account
-            before_omniauth_create_account
-            omniauth_save_account
-            after_omniauth_create_account
+            omniauth_create_account
           else
             set_redirect_error_flash omniauth_login_no_matching_account_error_flash
             redirect omniauth_login_failure_redirect
@@ -164,6 +161,13 @@ module Rodauth
 
     def omniauth_create_account?
       true
+    end
+
+    def omniauth_create_account
+      omniauth_new_account
+      before_omniauth_create_account
+      omniauth_save_account
+      after_omniauth_create_account
     end
 
     def _omniauth_new_account(login)
