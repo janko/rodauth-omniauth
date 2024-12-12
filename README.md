@@ -2,6 +2,15 @@
 
 [Rodauth] feature that offers login and registration via multiple external providers using [OmniAuth], together with the persistence of external identities.
 
+It comes with many features out of the box:
+
+* multiple external providers (with automatic identity linking)
+* automatic account creation (or login-only)
+* email verification on login
+* ability to count as two factors
+* JSON API support (+ JWT)
+* per-configuration strategies with inheritance
+
 ## Installation
 
 Add the gem to your project:
