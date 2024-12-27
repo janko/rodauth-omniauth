@@ -11,5 +11,5 @@ else
   gem "sqlite3"
 end
 
-gem "rake", "~> 12.0"
+gem "rake", "~> 13.0"
 gem "matrix" # rack dependency
