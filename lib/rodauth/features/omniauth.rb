@@ -58,14 +58,12 @@ module Rodauth
     def _handle_omniauth_callback
       before_omniauth_callback_route
 
-      retrieve_omniauth_identity
-
-      if !account && omniauth_identity
-        account_from_omniauth_identity
-      end
-
       unless account
-        account_from_omniauth
+        if omniauth_identity
+          account_from_omniauth_identity
+        else
+          account_from_omniauth
+        end
       end
 
       if account && !open_account?
@@ -100,8 +98,12 @@ module Rodauth
       end
     end
 
+    def omniauth_identity
+      @omniauth_identity ||= retrieve_omniauth_identity
+    end
+
     def retrieve_omniauth_identity
-      @omniauth_identity = _retrieve_omniauth_identity(omniauth_provider, omniauth_uid)
+      _retrieve_omniauth_identity(omniauth_provider, omniauth_uid)
     end
 
     def account_from_omniauth_identity
@@ -141,8 +143,6 @@ module Rodauth
       super if defined?(super)
       remove_omniauth_identities
     end
-
-    attr_reader :omniauth_identity
 
     def omniauth_second_factor?
       features.include?(:two_factor_base) && uses_two_factor_authentication? && omniauth_two_factors?
