@@ -1,5 +1,8 @@
 ENV["RACK_ENV"] = "test"
 
+require "warning"
+Gem.path.each { |path| Warning.ignore(//, path) } # ignore warnings in dependencies
+
 require "bundler/setup"
 
 require "minitest/autorun"

@@ -497,4 +497,16 @@ describe "Rodauth omniauth_base feature" do
     omniauth_login "/auth/developer"
     assert_equal "There was an error logging in with the external provider", page.find("#error_flash").text
   end
+
+  it "supports freezing" do
+    rodauth do
+      enable :omniauth_base
+      omniauth_provider :developer
+    end
+    roda do |r|
+    end
+
+    app.freeze
+    assert app.rodauth.frozen?
+  end
 end

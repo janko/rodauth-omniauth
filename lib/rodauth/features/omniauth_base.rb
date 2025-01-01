@@ -195,10 +195,12 @@ module Rodauth
     end
 
     def self.included(auth)
-      auth.extend ClassMethods
+      auth.extend OmniauthBase::ClassMethods
       auth.instance_variable_set(:@omniauth_providers, [])
     end
+  end
 
+  module OmniauthBase
     module ClassMethods
       def inherited(subclass)
         super

@@ -13,3 +13,4 @@ end
 
 gem "rake", "~> 13.0"
 gem "matrix" # rack dependency
+gem "warning"
