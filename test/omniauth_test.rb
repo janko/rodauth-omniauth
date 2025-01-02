@@ -296,7 +296,26 @@ describe "Rodauth omniauth feature" do
     rodauth do
       enable :omniauth
       omniauth_provider :developer
+      before_create_account { fail "should not be called" }
       before_omniauth_create_account { account[:name] = omniauth_info[:name] }
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: rodauth.authenticated_by.join(",") }
+    end
+
+    omniauth_login "/auth/developer", name: "Name", email: "janko@other.com"
+    account = DB[:accounts].order(:id).last
+    assert_equal "Name", account[:name]
+  end
+
+  it "calls before_create_account by default" do
+    DB.add_column :accounts, :name, String
+
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+      before_create_account { account[:name] = omniauth_info[:name] }
     end
     roda do |r|
       r.rodauth

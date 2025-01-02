@@ -132,8 +132,8 @@ Currently, provider login is required to return the user's email address, and ac
 | `before_omniauth_callback_route` | Run arbitrary code before handling the callback route. |
 | `omniauth_identity_insert_hash` | Hash of column values used for creating a new identity on login. |
 | `omniauth_identity_update_hash` | Hash of column values used fro updating existing identities on login. |
-| `before_omniauth_create_account` | Any actions to take before creating a new account on OmniAuth login. |
-| `after_omniauth_create_account` | Any actions to take after creating a new account on OmniAuth login. |
+| `before_omniauth_create_account` | Any actions to take before creating a new account on OmniAuth login. It calls `before_create_account` if not provided.  |
+| `after_omniauth_create_account` | Any actions to take after creating a new account on OmniAuth login. It calls `after_create_account` if not provided. |
 | `omniauth_setup` | Hook for OmniAuth setup phase |
 | `omniauth_request_validation_phase` | Hook for OmniAuth request validation phase (defaults to CSRF protection). |
 | `omniauth_before_request_phase` | Hook for OmniAuth before request phase. |

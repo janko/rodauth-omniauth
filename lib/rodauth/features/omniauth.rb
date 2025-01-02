@@ -4,7 +4,7 @@ require "omniauth"
 
 module Rodauth
   Feature.define(:omniauth, :Omniauth) do
-    depends :omniauth_base, :login
+    depends :omniauth_base, :login, :create_account
 
     before :omniauth_callback_route
     before :omniauth_create_account
@@ -161,6 +161,14 @@ module Rodauth
 
     def omniauth_create_account?
       true
+    end
+
+    def _before_omniauth_create_account
+      before_create_account
+    end
+
+    def _after_omniauth_create_account
+      after_create_account
     end
 
     def omniauth_create_account
