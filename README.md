@@ -142,24 +142,6 @@ Currently, provider login is required to return the user's email address, and ac
 
 ## Customizing
 
-### Timestamps
-
-If you want to know when an external identity was used first or last, you may want to add timestamp columns to the identities table:
-
-```rb
-create_table :account_identities do |t|
-  # ...
-  t.timestamps
-end
-```
-
-In that case, you'll need to make sure the column values are populated on create/update:
-
-```rb
-omniauth_identity_insert_hash { super().merge(created_at: Time.now) }
-omniauth_identity_update_hash { { updated_at: Time.now } }
-```
-
 ### Login
 
 After provider login, you can perform custom logic at the start of the callback request:
@@ -247,7 +229,7 @@ end
 
 ### Identity data
 
-You can also store extra data on the external identities. For example, we could override the update hash to store `info`, `credentials`, and `extra` data from the auth hash into separate columns:
+You can also store extra data on the external identities. The most common use case is storing [timestamps](https://github.com/janko/rodauth-omniauth/wiki/Timestamps). You could also persist data about external identities, for example:
 
 ```rb
 alter_table :account_identities do
@@ -288,18 +270,6 @@ omniauth_identities_id_column :id
 omniauth_identities_account_id_column :account_id
 omniauth_identities_provider_column :provider
 omniauth_identities_uid_column :uid
-```
-
-### Audit logging
-
-If you're using the [audit_logging] feature, it can be useful to include the external provider name in the `login` audit logs:
-
-```rb
-enable :audit_logging
-
-audit_log_metadata_for :login do
-  { "provider" => omniauth_provider } if authenticated_by.include?("omniauth")
-end
 ```
 
 ## Base
@@ -534,4 +504,3 @@ Everyone interacting in the rodauth-omniauth project's codebases, issue trackers
 [rodauth-model]: https://github.com/janko/rodauth-model
 [rodauth-rails]: https://github.com/janko/rodauth-rails
 [omniauth-oauth2]: https://github.com/omniauth/omniauth-oauth2
-[audit_logging]: https://rodauth.jeremyevans.net/rdoc/files/doc/audit_logging_rdoc.html
