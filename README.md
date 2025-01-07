@@ -262,6 +262,8 @@ omniauth_identity_insert_hash do
 end
 ```
 
+### Identity schema
+
 You can change the table name or any of the column names:
 
 ```rb
