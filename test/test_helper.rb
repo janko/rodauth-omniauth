@@ -54,9 +54,6 @@ end
 
 Sequel::Model.cache_anonymous_models = false
 
-OmniAuth.config.allowed_request_methods = %i[get post]
-OmniAuth.config.logger = Logger.new(nil)
-
 class Minitest::HooksSpec
   include Capybara::DSL
 
@@ -113,12 +110,18 @@ class Minitest::HooksSpec
     click_on "Logout"
   end
 
+  before do
+    OmniAuth.config.allowed_request_methods = %i[get post]
+    OmniAuth.config.logger = Logger.new(nil)
+  end
+
   around do |&block|
     DB.transaction(rollback: :always, auto_savepoint: true) { super(&block) }
   end
 
   after do
     Capybara.reset_sessions!
+    OmniAuth.config.send(:initialize) # reset OmniAuth configuration
   end
 end
 

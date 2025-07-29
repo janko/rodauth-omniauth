@@ -181,8 +181,6 @@ describe "Rodauth omniauth feature" do
 
     visit "/auth/developer"
     assert_equal 404, page.status_code
-
-    OmniAuth.config.allowed_request_methods = %i[get post]
   end
 
   it "deletes omniauth identities when account is closed" do

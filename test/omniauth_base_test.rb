@@ -339,8 +339,6 @@ describe "Rodauth omniauth_base feature" do
 
     page.driver.post "/auth/developer"
     assert_equal "Roda::RodaPlugins::RouteCsrf::InvalidToken: encoded token is not a string", page.html
-
-    OmniAuth.config.allowed_request_methods = %i[get post]
   end
 
   it "returns authorize URL when using JSON" do
@@ -508,5 +506,23 @@ describe "Rodauth omniauth_base feature" do
 
     app.freeze
     assert app.rodauth.frozen?
+  end
+
+  it "still allows calling OmniAuth directly" do
+    rodauth do
+      enable :omniauth_base
+    end
+    roda do |r|
+    end
+
+    builder = OmniAuth::Builder.new do |b|
+      b.use Rack::Session::Cookie, :secret => "a" * 64
+      b.provider :developer
+      b.run -> (env) { [404, {}, []] } # pass through
+    end
+    app = Rack::MockRequest.new(builder.to_app)
+    response = app.get "/auth/developer"
+    assert_equal 200, response.status
+    assert_includes response.body, "</form>"
   end
 end
