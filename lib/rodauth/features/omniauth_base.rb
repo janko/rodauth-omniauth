@@ -108,7 +108,7 @@ module Rodauth
       )
       builder.configure do |config|
         [:request_validation_phase, :before_request_phase, :before_callback_phase, :on_failure].each do |hook|
-          config.send(:"#{hook}=", -> (env) { env["rodauth.omniauth.instance"].send(:"omniauth_#{hook}") })
+          config.send(:"#{hook}=", -> (env) { env["rodauth.omniauth.instance"].send(:"omniauth_#{hook}") if env["rodauth.omniauth.instance"] })
         end
       end
       self.class.instance_variable_get(:@omniauth_providers).each do |(provider, *args)|
