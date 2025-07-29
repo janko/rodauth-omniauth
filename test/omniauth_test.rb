@@ -80,6 +80,25 @@ describe "Rodauth omniauth feature" do
     assert_equal 1, DB[:accounts].count
   end
 
+  it "allows retrieving existing omniauth identity early on" do
+    DB[:account_identities].insert(account_id: 1, provider: "developer", uid: "janko@hey.com")
+
+    rodauth do
+      enable :omniauth
+      omniauth_provider :developer
+      before_omniauth_callback_route do
+        return_response "Greetings" if omniauth_identity[:uid] == "janko@hey.com"
+      end
+    end
+    roda do |r|
+      r.rodauth
+      r.root { view content: rodauth.authenticated_by.join(",") }
+    end
+
+    omniauth_login "/auth/developer"
+    assert_equal "Greetings", page.html
+  end
+
   it "verifies unverified accounts by default" do
     DB[:accounts].delete
 
